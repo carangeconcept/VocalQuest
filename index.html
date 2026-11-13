@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Vocal Quest – Pitch RPG</title>
+<style>
+:root{--bg:#120d1f;--panel:#1d1530;--panel2:#2a1f45;--line:#3a2d5c;--ink:#f4eefc;--muted:#a99cc7;--gold:#ffd166;--green:#5ee6a8;--red:#ff5d7a;--violet:#8b5cf6;--cyan:#4dd8ff;--amber:#ffb86b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{background:radial-gradient(900px 500px at 80% -10%,#3b1f6e55,transparent),radial-gradient(700px 500px at -10% 110%,#0e4a6a44,transparent),var(--bg);padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+button{font:inherit;color:inherit;cursor:pointer}
+.hidden{display:none!important}
+#app{max-width:640px;margin:0 auto;padding:14px 14px 96px}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+h2{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:18px 4px 8px}
+.tiny{font-size:12px;color:var(--muted)}
+.hero{display:flex;gap:12px;align-items:center}
+.av{font-size:40px;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,#6d3fd0,#2a1f45);border:2px solid var(--gold);flex:none}
+.hinfo{flex:1;min-width:0}
+.title{font-weight:800;font-size:18px}
+.sub{font-size:13px;color:var(--muted);margin-bottom:6px}
+.gold{font-weight:800;color:var(--gold);white-space:nowrap}
+.bar{height:12px;border-radius:8px;background:#0e0a1a;border:1px solid var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:8px;transition:width .12s linear}
+.xp i{background:linear-gradient(90deg,var(--violet),var(--cyan))}
+.hp i{background:linear-gradient(90deg,#ff5d7a,#ff9a5d)}
+.foehp i{background:linear-gradient(90deg,#b36bff,#ff5d7a)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:#150f26;border-radius:999px;padding:8px 14px;min-height:40px;font-size:14px}
+.chip.on{background:var(--violet);border-color:#b79bff;font-weight:700}
+.btn{border:0;border-radius:14px;padding:12px 16px;min-height:46px;font-weight:700;background:var(--panel2);border:1px solid var(--line)}
+.btn.primary{background:linear-gradient(180deg,#9b6bff,#6d3fd0);border-color:#b79bff;box-shadow:0 4px 18px #6d3fd055}
+.btn.good{background:linear-gradient(180deg,#46d69a,#1f9d6c);border-color:#7df0c0;color:#04241a}
+.btn.block{width:100%}
+.row{display:flex;gap:10px;align-items:center}
+.row.sp{justify-content:space-between}
+.notice{background:#3a2a10;border:1px solid #7a5a20;color:#ffe2a8;border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.zone{margin-bottom:6px}
+.zhead{display:flex;gap:10px;align-items:center;margin:16px 4px 8px}
+.zhead b{font-size:17px}
+.q{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:8px;min-height:64px}
+.q:disabled{opacity:.45;cursor:not-allowed}
+.q .em{font-size:34px;width:48px;text-align:center}
+.q .nm{font-weight:700}
+.q .stars{margin-left:auto;font-size:18px;letter-spacing:2px;white-space:nowrap}
+.boss{border-color:#b8860b}
+.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:#0d0818f2;backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));z-index:5;max-width:640px;margin:0 auto}
+.tabs button{flex:1;background:none;border:0;padding:8px;border-radius:12px;font-size:12px;color:var(--muted);min-height:52px}
+.tabs button span{display:block;font-size:22px}
+.tabs button.on{color:var(--ink);background:#2a1f45}
+.relic{display:flex;gap:12px;align-items:center}
+.relic .em{font-size:30px}
+.pips{letter-spacing:3px;color:var(--gold)}
+.mirror{text-align:center}
+#mNote{font-size:84px;font-weight:900;line-height:1;margin:10px 0 0}
+#mHz{color:var(--muted);height:22px}
+.meter{position:relative;height:30px;border-radius:16px;background:#0e0a1a;border:1px solid var(--line);margin:16px 6px 6px;overflow:hidden}
+.meter .mid{position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--green);opacity:.7}
+.meter .ok{position:absolute;left:calc(50% - 10%);width:20%;top:0;bottom:0;background:#5ee6a822}
+#mNeedle{position:absolute;top:3px;bottom:3px;width:8px;margin-left:-4px;border-radius:6px;background:var(--amber);left:50%;transition:left .08s linear}
+.overlay{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.scrim{position:fixed;inset:0;z-index:30;background:#000a;display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:560px;background:var(--panel);border:1px solid var(--line);border-radius:24px 24px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:90dvh;overflow:auto}
+.sheet.center{border-radius:24px;margin:auto 14px}
+.big{font-size:64px;text-align:center}
+.spell{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.spell span{background:#150f26;border:1px solid var(--line);border-radius:10px;padding:4px 9px;font-weight:700;font-size:14px}
+.spell span.hl{background:var(--violet);border-color:#b79bff}
+.b-top{display:flex;gap:10px;align-items:center;padding:10px 12px}
+.foe{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+#foeEmoji{font-size:46px;display:inline-block;transition:transform .1s}
+#foeEmoji.hurt{animation:wob .18s infinite}
+#foeEmoji.idle{animation:bob 2s ease-in-out infinite}
+@keyframes wob{0%,100%{transform:translateX(0) rotate(0)}25%{transform:translateX(-5px) rotate(-6deg)}75%{transform:translateX(5px) rotate(6deg)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.b-mid{flex:1;min-height:0;position:relative}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.b-bot{padding:8px 12px 12px}
+.hrow{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+#combo{font-weight:800;color:var(--gold);min-width:70px;text-align:right}
+#readout{display:flex;justify-content:space-between;gap:8px;font-weight:700;min-height:26px}
+#readout .hint{color:var(--amber)}
+.shake{animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.demo{background:#150f26;border:1px dashed var(--line);border-radius:12px;padding:8px 10px;margin-top:8px}
+.demo input[type=range]{width:100%;accent-color:var(--violet);height:34px}
+.stars-big{font-size:40px;text-align:center;letter-spacing:6px}
+.lvlup{background:linear-gradient(90deg,#ffd166,#ff9a5d);color:#2a1500;font-weight:900;text-align:center;border-radius:12px;padding:8px;margin:8px 0}
+.kv{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)}
+@media (prefers-reduced-motion:reduce){#foeEmoji.hurt,#foeEmoji.idle,.shake{animation:none}}
+</style>
+</head>
+<body>
+<div id="app"><div id="hero"></div><div id="view"></div></div>
+<nav class="tabs" id="tabs">
+  <button data-a="tab" data-t="quests"><span>⚔️</span>Quests</button>
+  <button data-a="tab" data-t="mirror"><span>🔮</span>Mirror</button>
+  <button data-a="tab" data-t="relics"><span>💎</span>Relics</button>
+</nav>
+
+<div id="battle" class="overlay hidden">
+  <div class="b-top">
+    <button class="btn" data-a="pause" aria-label="Pause" style="min-width:46px;padding:0">⏸</button>
+    <div class="foe"><span id="foeEmoji" class="idle"></span>
+      <div style="flex:1;min-width:0"><div id="foeName" style="font-weight:800"></div><div class="bar foehp"><i id="foeHp"></i></div></div></div>
+  </div>
+  <div class="b-mid"><canvas id="cv"></canvas></div>
+  <div class="b-bot">
+    <div class="hrow"><span style="font-size:22px">🧝</span><div class="bar hp" style="flex:1"><i id="heroHp"></i></div><span id="combo"></span></div>
+    <div id="readout"><span id="rdTarget"></span><span id="rdYou" class="hint"></span></div>
+    <div id="battleDemo"></div>
+  </div>
+</div>
+
+<div id="scrim" class="scrim hidden"><div id="sheet" class="sheet"></div></div>
+
+<script>
+(() => {
+'use strict';
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const NOTE_NAMES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const pc = m => NOTE_NAMES[((Math.round(m) % 12) + 12) % 12];
+const noteName = m => pc(m) + (Math.floor(Math.round(m) / 12) - 1);
+const hz2midi = f => 69 + 12 * Math.log2(f / 440);
+const fold = (m, ref) => m - 12 * Math.round((m - ref) / 12);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* ---------- game data ---------- */
+const VOICES = {
+  bass:{n:'Bass',cls:'Stormcaller',root:40}, baritone:{n:'Baritone',cls:'Shieldsinger',root:45},
+  tenor:{n:'Tenor',cls:'Songblade',root:48}, alto:{n:'Alto',cls:'Moonweaver',root:53},
+  mezzo:{n:'Mezzo',cls:'Dawnbard',root:57}, soprano:{n:'Soprano',cls:'Skycaller',root:60}
+};
+const ZONES = [
+  {name:'Whispering Meadow',icon:'🌼',unlock:1,tol:50,beat:1.6,atk:18,blurb:'Hold single notes steady.',quests:[
+    {id:'m1',name:'Grub',emoji:'🐛',pat:[0,4,0]},
+    {id:'m2',name:'Mushroom Imp',emoji:'🍄',pat:[0,4,7,4,0]},
+    {id:'m3',name:'Bog Toad',emoji:'🐸',pat:[0,2,4,2,0,-2,0],boss:true}]},
+  {name:'Echo Caves',icon:'🕳️',unlock:2,tol:42,beat:1.4,atk:20,blurb:'Leap between notes.',quests:[
+    {id:'c1',name:'Cave Bat',emoji:'🦇',pat:[0,5,0,5,7,5,0]},
+    {id:'c2',name:'Crystal Spider',emoji:'🕷️',pat:[0,3,7,3,0,7,5,0]},
+    {id:'c3',name:'Stone Golem',emoji:'🗿',pat:[0,7,5,7,10,7,5,0,7,0],boss:true}]},
+  {name:'Singing Forest',icon:'🌲',unlock:3,tol:36,beat:1.2,atk:22,blurb:'Climb and descend scales.',quests:[
+    {id:'f1',name:'Gloom Owl',emoji:'🦉',pat:[0,2,4,2,0]},
+    {id:'f2',name:'Dire Wolf',emoji:'🐺',pat:[0,2,4,5,7,5,4,2,0]},
+    {id:'f3',name:'Elder Treant',emoji:'🌳',pat:[0,2,4,5,7,9,11,9,7,5,4,2,0],boss:true}]},
+  {name:'Crystal Citadel',icon:'🏰',unlock:5,tol:28,beat:1.1,atk:25,blurb:'Arpeggios with tight tuning.',quests:[
+    {id:'k1',name:'Wraith',emoji:'👻',pat:[0,4,7,4,0,7,4,0]},
+    {id:'k2',name:'Dark Sorcerer',emoji:'🧙',pat:[0,4,7,11,7,4,0,5,9,5,0]},
+    {id:'k3',name:'Storm Dragon',emoji:'🐉',pat:[0,4,7,11,14,11,7,4,0,5,9,12,9,5,7,0],boss:true}]}
+];
+const RELICS = [
+  {id:'fork',name:'Tuning Fork',emoji:'🎵',desc:'+8¢ pitch tolerance per rank',base:60},
+  {id:'locket',name:'Heart Locket',emoji:'💗',desc:'+25 max HP per rank',base:70},
+  {id:'throat',name:'Golden Throat',emoji:'📿',desc:'+15% XP per rank',base:90},
+  {id:'breath',name:'Steady Breath',emoji:'🌬️',desc:'Notes need 8% less hold time per rank',base:80}
+];
+const TITLES = ['Squeaky Novice','Shower Singer','Apprentice Bard','Tuned Adventurer','Songblade','Harmonist','Pitch Knight','Arch-Cantor','Resonance Sage','Legend of the Perfect Fifth'];
+const xpNeed = l => 60 + 40 * (l - 1);
+
+/* ---------- save ---------- */
+const KEY = 'vocalquest.v1';
+let S = {voice:'tenor',lvl:1,xp:0,gold:0,relics:{fork:0,locket:0,throat:0,breath:0},stars:{},streak:0,lastDay:'',anyOctave:true,wins:0};
+try { const j = localStorage.getItem(KEY); if (j) S = Object.assign(S, JSON.parse(j)); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+
+/* ---------- audio in/out ---------- */
+const Mic = {ctx:null, an:null, buf:null, on:false};
+let input = 'none';              // 'none' | 'mic' | 'demo'
+let notice = '';
+const demo = {midi:52, on:true};
+const getCtx = () => Mic.ctx || (Mic.ctx = new (window.AudioContext || window.webkitAudioContext)());
+
+async function enableMic() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('unsupported');
+    const stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}});
+    const ctx = getCtx(); if (ctx.resume) await ctx.resume();
+    const src = ctx.createMediaStreamSource(stream);
+    const an = ctx.createAnalyser(); an.fftSize = 2048; src.connect(an);
+    Mic.an = an; Mic.buf = new Float32Array(2048); Mic.on = true; input = 'mic'; notice = '';
+    return true;
+  } catch (e) {
+    input = 'demo';
+    notice = 'Microphone isn’t available in this view, so you’re using Demo Voice (drag the slider to sing). Open the standalone file in your own browser for real singing.';
+    return false;
+  }
+}
+
+/* YIN pitch detector: returns Hz or null */
+function detectPitch(buf, sr) {
+  const N = 1024;
+  const len = Math.min(buf.length, N * 2);
+  let rms = 0; for (let i = 0; i < len; i++) rms += buf[i] * buf[i];
+  if (Math.sqrt(rms / len) < 0.012) return null;
+  const tauMax = Math.min(Math.floor(sr / 65), buf.length - N - 2);
+  const tauMin = Math.max(2, Math.floor(sr / 1300));
+  const d = new Float32Array(tauMax + 2); d[0] = 1;
+  let run = 0;
+  for (let tau = 1; tau <= tauMax; tau++) {
+    let s = 0;
+    for (let i = 0; i < N; i++) { const x = buf[i] - buf[i + tau]; s += x * x; }
+    run += s; d[tau] = s * tau / (run || 1e-12);
+  }
+  let tau = -1;
+  for (let k = tauMin; k < tauMax; k++) {
+    if (d[k] < 0.15) { while (k + 1 < tauMax && d[k + 1] < d[k]) k++; tau = k; break; }
+  }
+  if (tau < 0) return null;
+  const a = d[tau - 1], b = d[tau], c = d[tau + 1], den = a - 2 * b + c;
+  const shift = den ? 0.5 * (a - c) / den : 0;
+  return sr / (tau + shift);
+}
+
+const V = {voiced:false, m:0, last:-9};
+const hist = [];
+function sense(now) {
+  let f = null;
+  if (input === 'mic' && Mic.on) { Mic.an.getFloatTimeDomainData(Mic.buf); f = detectPitch(Mic.buf, Mic.ctx.sampleRate); }
+  else if (input === 'demo' && demo.on) f = 440 * Math.pow(2, (demo.midi - 69) / 12);
+  if (f) {
+    let m = hz2midi(f);
+    if (input === 'mic') { hist.push(m); if (hist.length > 5) hist.shift(); const s = hist.slice().sort((x, y) => x - y); m = s[s.length >> 1]; }
+    V.m = m; V.voiced = true; V.last = now;
+  } else if (now - V.last > 0.12) { V.voiced = false; hist.length = 0; }
+  return V;
+}
+
+function tone(midi, when, dur, vol) {
+  const c = getCtx(); const o = c.createOscillator(), g = c.createGain();
+  o.type = 'triangle'; o.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+  g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vol || 0.18, when + 0.03);
+  g.gain.setValueAtTime(vol || 0.18, when + dur - 0.08); g.gain.linearRampToValueAtTime(0, when + dur);
+  o.connect(g); g.connect(c.destination); o.start(when); o.stop(when + dur + 0.02);
+}
+
+/* ---------- state helpers ---------- */
+let tab = 'quests', cur = {zi:0, qi:0}, B = null, raf = 0, mirrorRaf = 0;
+const root = () => VOICES[S.voice].root;
+const heroMaxHp = () => 100 + 25 * S.relics.locket;
+const tolFor = z => z.tol + 8 * S.relics.fork;
+const unlocked = (zi, qi) => {
+  const z = ZONES[zi]; if (S.lvl < z.unlock) return false;
+  return qi === 0 || (S.stars[z.quests[qi - 1].id] || 0) > 0;
+};
+const nextOf = (zi, qi) => {
+  if (qi + 1 < ZONES[zi].quests.length) return unlocked(zi, qi + 1) ? [zi, qi + 1] : null;
+  if (zi + 1 < ZONES.length) return unlocked(zi + 1, 0) ? [zi + 1, 0] : null;
+  return null;
+};
+function buildNotes(z, q) {
+  let t = 3; const gap = 0.3;
+  return q.pat.map(o => { const n = {midi: root() + o, start: t, dur: z.beat, hit: 0, done: false, ok: null, errSum: 0, errN: 0}; t += z.beat + gap; return n; });
+}
+
+/* ---------- rendering: home ---------- */
+function renderHero() {
+  const need = xpNeed(S.lvl);
+  $('#hero').innerHTML = `<section class="card hero">
+    <div class="av">🧝</div>
+    <div class="hinfo"><div class="title">${TITLES[Math.min(S.lvl - 1, TITLES.length - 1)]}</div>
+      <div class="sub">Level ${S.lvl} ${VOICES[S.voice].cls} · ${VOICES[S.voice].n}</div>
+      <div class="bar xp"><i style="width:${Math.min(100, S.xp / need * 100)}%"></i></div>
+      <div class="tiny">${S.xp} / ${need} XP</div></div>
+    <div class="gold">🪙 ${S.gold}</div></section>`;
+}
+function renderQuests() {
+  const inputLabel = input === 'mic' ? '🎤 Microphone on' : input === 'demo' ? '🎹 Demo voice' : '🎤 Not connected';
+  let h = notice ? `<div class="notice">${notice}</div>` : '';
+  h += `<section class="card"><div class="tiny" style="margin-bottom:8px">YOUR VOICE TYPE (sets your key)</div>
+    <div class="chips">${Object.keys(VOICES).map(k => `<button class="chip ${S.voice === k ? 'on' : ''}" data-a="voice" data-v="${k}">${VOICES[k].n}</button>`).join('')}</div>
+    <div class="row sp" style="margin-top:12px"><div><b>${inputLabel}</b><div class="tiny">Headphones recommended</div></div>
+      <div class="row"><button class="btn" data-a="mic">${input === 'mic' ? 'Reconnect' : 'Use mic'}</button><button class="btn" data-a="demoMode">Demo</button></div></div>
+    <div class="row sp" style="margin-top:12px"><div><b>Any octave</b><div class="tiny">Sing each note in whichever octave is comfy</div></div>
+      <button class="chip ${S.anyOctave ? 'on' : ''}" data-a="octave">${S.anyOctave ? 'On' : 'Off'}</button></div></section>`;
+  ZONES.forEach((z, zi) => {
+    const locked = S.lvl < z.unlock;
+    h += `<div class="zone"><div class="zhead"><span style="font-size:28px">${z.icon}</span><div><b>${z.name}</b><div class="tiny">${locked ? '🔒 Reach level ' + z.unlock : z.blurb + ' · ±' + tolFor(z) + '¢'}</div></div></div>`;
+    z.quests.forEach((q, qi) => {
+      const ok = unlocked(zi, qi), st = S.stars[q.id] || 0;
+      h += `<button class="q ${q.boss ? 'boss' : ''}" data-a="quest" data-z="${zi}" data-q="${qi}" ${ok ? '' : 'disabled'}>
+        <span class="em">${ok ? q.emoji : '❔'}</span><span><div class="nm">${ok ? q.name : '???'}${q.boss ? ' · BOSS' : ''}</div><div class="tiny">${q.pat.length} notes</div></span>
+        <span class="stars">${'★'.repeat(st)}<span style="opacity:.25">${'★'.repeat(3 - st)}</span></span></button>`;
+    });
+    h += '</div>';
+  });
+  $('#view').innerHTML = h;
+}
+function renderMirror() {
+  const demoCtl = input === 'demo' ? demoHTML(36, 84) : '';
+  $('#view').innerHTML = `${notice ? `<div class="notice">${notice}</div>` : ''}<section class="card mirror">
+    <div class="tiny">SCRYING MIRROR · free tuner</div>
+    <div id="mNote">–</div><div id="mHz"></div>
+    <div class="meter"><div class="ok"></div><div class="mid"></div><div id="mNeedle"></div></div>
+    <div class="row sp tiny"><span>♭ flat</span><span id="mCents">sing a note</span><span>sharp ♯</span></div>
+    <div class="tiny" id="mRange" style="margin-top:12px">Range explored: –</div></section>
+    ${input === 'none' ? '<button class="btn primary block" data-a="mic">🎤 Enable microphone</button><button class="btn block" data-a="demoMode" style="margin-top:8px">🎹 Use demo voice instead</button>' : ''}
+    ${demoCtl}
+    <button class="btn block" data-a="ref" style="margin-top:10px">🔊 Play your home note (${noteName(root())})</button>`;
+  startMirror();
+}
+function renderRelics() {
+  let h = `<h2>Relics</h2>`;
+  RELICS.forEach(r => {
+    const rank = S.relics[r.id], cost = r.base * (rank + 1), max = rank >= 3;
+    h += `<div class="card relic"><span class="em">${r.emoji}</span><div style="flex:1"><b>${r.name}</b> <span class="pips">${'◆'.repeat(rank)}${'◇'.repeat(3 - rank)}</span><div class="tiny">${r.desc}</div></div>
+      <button class="btn ${!max && S.gold >= cost ? 'primary' : ''}" data-a="buy" data-r="${r.id}" ${max || S.gold < cost ? 'disabled' : ''}>${max ? 'MAX' : '🪙 ' + cost}</button></div>`;
+  });
+  h += `<button class="chip" data-a="reset" style="margin-top:14px">Reset progress</button>`;
+  $('#view').innerHTML = h;
+}
+function demoHTML(lo, hi) {
+  return `<div class="demo"><div class="row sp"><span class="tiny">🎹 DEMO VOICE · drag to sing</span>
+    <button class="chip" data-a="demoToggle">${demo.on ? 'Voice ON' : 'Voice OFF'}</button></div>
+    <input type="range" class="demo-slider" min="${lo}" max="${hi}" step="0.05" value="${clamp(demo.midi, lo, hi)}" aria-label="Demo pitch"></div>`;
+}
+function show() {
+  stopMirror(); renderHero();
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === tab));
+  if (tab === 'quests') renderQuests(); else if (tab === 'mirror') renderMirror(); else renderRelics();
+}
+
+/* ---------- mirror (tuner) ---------- */
+let rLo = 999, rHi = -999;
+function startMirror() {
+  const loop = () => {
+    const v = sense(performance.now() / 1000);
+    const n = $('#mNote'); if (!n) return;
+    if (v.voiced) {
+      const m = v.m, r = Math.round(m), c = (m - r) * 100;
+      n.textContent = noteName(m); $('#mHz').textContent = Math.round(440 * Math.pow(2, (m - 69) / 12)) + ' Hz';
+      $('#mNeedle').style.left = (50 + clamp(c, -50, 50)) + '%';
+      $('#mNeedle').style.background = Math.abs(c) < 10 ? 'var(--green)' : 'var(--amber)';
+      $('#mCents').textContent = (c > 0 ? '+' : '') + Math.round(c) + '¢';
+      rLo = Math.min(rLo, r); rHi = Math.max(rHi, r);
+      $('#mRange').textContent = 'Range explored: ' + noteName(rLo) + ' – ' + noteName(rHi);
+    } else { n.textContent = '–'; $('#mHz').textContent = ''; $('#mCents').textContent = 'sing a note'; $('#mNeedle').style.left = '50%'; }
+    mirrorRaf = requestAnimationFrame(loop);
+  };
+  mirrorRaf = requestAnimationFrame(loop);
+}
+const stopMirror = () => { cancelAnimationFrame(mirrorRaf); mirrorRaf = 0; };
+
+/* ---------- sheets ---------- */
+function openSheet(html, center) { const s = $('#sheet'); s.className = 'sheet' + (center ? ' center' : ''); s.innerHTML = html; $('#scrim').classList.remove('hidden'); }
+function closeSheet() { $('#scrim').classList.add('hidden'); }
+function openPrep(zi, qi) {
+  cur = {zi, qi}; const z = ZONES[zi], q = z.quests[qi], notes = buildNotes(z, q);
+  openSheet(`<div class="big">${q.emoji}</div><h3 style="text-align:center;margin:0">${q.name}${q.boss ? ' · BOSS' : ''}</h3>
+    <div class="tiny" style="text-align:center">${z.name} · hit each note within ±${tolFor(z)}¢ to cast your spell</div>
+    <div class="spell">${notes.map((n, i) => `<span id="chip${i}">${S.anyOctave ? pc(n.midi) : noteName(n.midi)}</span>`).join('')}</div>
+    <div class="row"><button class="btn" style="flex:1" data-a="hear">🔊 Hear the spell</button><button class="btn primary" style="flex:1" data-a="fight">⚔️ Fight!</button></div>
+    <button class="chip" data-a="close" style="margin-top:10px;width:100%">Back</button>`);
+}
+function hearSpell() {
+  const z = ZONES[cur.zi], notes = buildNotes(z, z.quests[cur.qi]), c = getCtx(); if (c.resume) c.resume();
+  let t = c.currentTime + 0.05;
+  notes.forEach((n, i) => { tone(n.midi, t, 0.65); const d = (t - c.currentTime) * 1000;
+    setTimeout(() => { document.querySelectorAll('.spell span').forEach(s => s.classList.remove('hl')); const e = $('#chip' + i); if (e) e.classList.add('hl'); }, d); t += 0.75; });
+}
+
+/* ---------- battle ---------- */
+const cv = $('#cv'), g = cv.getContext('2d');
+let cw = 300, ch = 300;
+function fit() { const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = r.width * dpr; cv.height = r.height * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); cw = r.width; ch = r.height; }
+window.addEventListener('resize', () => { if (B) fit(); });
+
+async function startBattle() {
+  closeSheet();
+  if (input === 'none') await enableMic();
+  const z = ZONES[cur.zi], q = z.quests[cur.qi], notes = buildNotes(z, q);
+  stopMirror();
+  const mids = notes.map(n => n.midi);
+  let lo = Math.min(...mids) - 3, hi = Math.max(...mids) + 3; if (hi - lo < 12) { const e = (12 - (hi - lo)) / 2; lo -= e; hi += e; }
+  B = {z, q, notes, lo, hi, t: 0, tol: tolFor(z), need: 0.6 - 0.08 * S.relics.breath, foe: 100, hero: heroMaxHp(), heroMax: heroMaxHp(),
+    combo: 0, maxCombo: 0, hit: 0, attempted: 0, voicedT: 0, trail: [], fx: [], parts: [], cur: {m: null, cents: null}, onPitch: false, paused: false, ended: false,
+    total: notes.reduce((s, n) => s + n.dur, 0), power: 1 + 0.02 * (S.lvl - 1), last: 0};
+  $('#foeEmoji').textContent = q.emoji; $('#foeName').textContent = q.name + (q.boss ? ' · BOSS' : '');
+  $('#battleDemo').innerHTML = input === 'demo' ? demoHTML(Math.floor(lo), Math.ceil(hi)) : '';
+  if (input === 'demo') demo.midi = clamp(demo.midi, lo, hi);
+  $('#battle').classList.remove('hidden');
+  fit(); B.last = performance.now(); raf = requestAnimationFrame(tick);
+}
+function tick(ts) {
+  if (!B) return;
+  if (!B.paused && !B.ended) { const dt = Math.min(0.05, (ts - B.last) / 1000); step(dt); }
+  B.last = ts; draw();
+  if (!B.ended) raf = requestAnimationFrame(tick);
+}
+function say(txt, color, y) { B.fx.push({txt, color, x: cw * 0.28 + 24, y, life: 1}); }
+function step(dt) {
+  const b = B; b.t += dt;
+  const v = sense(performance.now() / 1000);
+  const active = b.notes.find(n => b.t >= n.start && b.t < n.start + n.dur);
+  const next = b.notes.find(n => n.start + n.dur > b.t) || b.notes[b.notes.length - 1];
+  const ref = (active || next).midi;
+  let fm = null, cents = null;
+  if (v.voiced) { fm = S.anyOctave ? fold(v.m, ref) : v.m; cents = (fm - ref) * 100; b.voicedT += dt; }
+  b.cur = {m: fm, cents}; b.trail.push({t: b.t, m: fm, on: false});
+  while (b.trail.length && b.trail[0].t < b.t - 2) b.trail.shift();
+  b.onPitch = false;
+  if (active && b.t > 0) {
+    b.attempted += dt;
+    if (v.voiced) {
+      active.errSum += cents; active.errN++;
+      if (Math.abs(cents) <= b.tol) {
+        const crit = Math.abs(cents) <= 12;
+        active.hit += dt; b.hit += dt; b.onPitch = true; b.trail[b.trail.length - 1].on = true;
+        b.foe = Math.max(0, b.foe - 100 / (0.55 * b.total) * b.power * (crit ? 1.3 : 1) * dt);
+        for (let i = 0; i < 2; i++) b.parts.push({x: cw * 0.28, y: yOf(fm), vx: 40 + Math.random() * 160, vy: -80 - Math.random() * 120, life: 0.6, c: crit ? '#ffd166' : '#5ee6a8'});
+      }
+    }
+  }
+  for (const n of b.notes) if (!n.done && b.t >= n.start + n.dur) {
+    n.done = true; n.ok = n.hit / n.dur >= b.need;
+    if (n.ok) { b.combo++; b.maxCombo = Math.max(b.maxCombo, b.combo); say(b.combo > 2 ? 'Cast! x' + b.combo : 'Cast!', '#5ee6a8', yOf(n.midi) - 24); }
+    else { b.combo = 0; b.hero -= b.z.atk; say('Miss −' + b.z.atk, '#ff5d7a', yOf(n.midi) - 24); shake(); }
+  }
+  b.fx.forEach(f => { f.life -= dt; f.y -= 30 * dt; }); b.fx = b.fx.filter(f => f.life > 0);
+  b.parts.forEach(p => { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 260 * dt; }); b.parts = b.parts.filter(p => p.life > 0);
+  hud();
+  const end = b.notes[b.notes.length - 1];
+  if (b.foe <= 0) finish(true); else if (b.hero <= 0) finish(false); else if (b.t > end.start + end.dur + 0.3) finish(false);
+}
+function hud() {
+  const b = B; $('#foeHp').style.width = b.foe + '%'; $('#heroHp').style.width = clamp(b.hero / b.heroMax * 100, 0, 100) + '%';
+  $('#combo').textContent = b.combo > 1 ? '🔥 ' + b.combo : '';
+  const fe = $('#foeEmoji'); fe.className = b.onPitch ? 'hurt' : 'idle';
+  const act = b.notes.find(n => b.t >= n.start && b.t < n.start + n.dur) || b.notes.find(n => n.start > b.t);
+  $('#rdTarget').textContent = b.t < b.notes[0].start - 0.2 ? 'Get ready…' : act ? 'Sing: ' + (S.anyOctave ? pc(act.midi) : noteName(act.midi)) : '';
+  const c = b.cur;
+  if (!V.voiced) $('#rdYou').textContent = b.t > 0 ? '…silence' : '';
+  else { const c2 = c.cents, near = Math.abs(c2) <= b.tol; $('#rdYou').textContent = noteName(V.m) + ' · ' + (c2 > 0 ? '+' : '') + Math.round(c2) + '¢' + (near ? ' ✓' : c2 < 0 ? ' ⬆ higher' : ' ⬇ lower'); }
+}
+function shake() { const el = $('#battle'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+
+/* ---------- canvas drawing ---------- */
+const padT = 14, padB = 14;
+const yOf = m => padT + (B.hi - clamp(m, B.lo, B.hi)) * ((ch - padT - padB) / (B.hi - B.lo));
+function rr(x, y, w, h, r) { r = Math.min(r, h / 2, w / 2); g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function draw() {
+  const b = B; if (!b) return; const W = cw, H = ch, nowX = W * 0.28, pps = W * 0.38, sh = (H - padT - padB) / (b.hi - b.lo);
+  g.clearRect(0, 0, W, H);
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#1a1233'); bg.addColorStop(1, '#0d0919'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  g.font = '11px system-ui'; g.textBaseline = 'middle';
+  for (let k = Math.ceil(b.lo); k <= Math.floor(b.hi); k++) {
+    const y = yOf(k), nat = [0, 2, 4, 5, 7, 9, 11].includes(((k % 12) + 12) % 12);
+    g.strokeStyle = nat ? 'rgba(180,160,255,.16)' : 'rgba(180,160,255,.05)'; g.lineWidth = 1; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+    if (nat) { g.fillStyle = 'rgba(200,185,255,.5)'; g.fillText(S.anyOctave ? pc(k) : noteName(k), 6, y - 7); }
+  }
+  const lg = g.createLinearGradient(nowX - 2, 0, nowX + 2, 0); lg.addColorStop(0, 'rgba(77,216,255,0)'); lg.addColorStop(.5, 'rgba(77,216,255,.8)'); lg.addColorStop(1, 'rgba(77,216,255,0)');
+  g.fillStyle = lg; g.fillRect(nowX - 3, 0, 6, H);
+  for (const n of b.notes) {
+    const x0 = nowX + (n.start - b.t) * pps, w = n.dur * pps; if (x0 + w < 0 || x0 > W) continue;
+    const h = Math.max(22, 2 * b.tol / 100 * sh), y = yOf(n.midi) - h / 2, act = b.t >= n.start && b.t < n.start + n.dur;
+    g.fillStyle = n.ok === true ? 'rgba(94,230,168,.45)' : n.ok === false ? 'rgba(255,93,122,.35)' : act ? 'rgba(139,92,246,.85)' : 'rgba(139,92,246,.5)';
+    rr(x0, y, w, h, 10); g.fill(); g.strokeStyle = n.ok === true ? '#5ee6a8' : n.ok === false ? '#ff5d7a' : '#b79bff'; g.lineWidth = act ? 2.5 : 1.5; g.stroke();
+    if (!n.done && n.hit > 0) { g.fillStyle = 'rgba(94,230,168,.7)'; rr(x0, y + h - 5, w * Math.min(1, n.hit / n.dur), 5, 3); g.fill(); }
+    if (w > 36) { g.fillStyle = '#fff'; g.font = 'bold 13px system-ui'; g.fillText(S.anyOctave ? pc(n.midi) : noteName(n.midi), x0 + 10, y + h / 2); }
+  }
+  g.lineCap = 'round'; g.lineWidth = 4;
+  for (let i = 1; i < b.trail.length; i++) {
+    const p = b.trail[i], q = b.trail[i - 1]; if (p.m === null || q.m === null) continue;
+    g.strokeStyle = p.on ? '#5ee6a8' : '#ffb86b'; g.globalAlpha = clamp(1 - (b.t - p.t) / 2, 0.15, 1);
+    g.beginPath(); g.moveTo(nowX + (q.t - b.t) * pps, yOf(q.m)); g.lineTo(nowX + (p.t - b.t) * pps, yOf(p.m)); g.stroke();
+  }
+  g.globalAlpha = 1;
+  if (b.cur.m !== null) {
+    const y = yOf(b.cur.m), col = b.onPitch ? '#5ee6a8' : '#ffb86b', gr = g.createRadialGradient(nowX, y, 2, nowX, y, 26);
+    gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.beginPath(); g.arc(nowX, y, 26, 0, 6.3); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(nowX, y, 8, 0, 6.3); g.fill();
+  }
+  for (const p of b.parts) { g.globalAlpha = clamp(p.life / 0.6, 0, 1); g.fillStyle = p.c; g.beginPath(); g.arc(p.x, p.y, 3, 0, 6.3); g.fill(); }
+  g.globalAlpha = 1; g.font = 'bold 16px system-ui';
+  for (const f of b.fx) { g.globalAlpha = clamp(f.life, 0, 1); g.fillStyle = f.color; g.fillText(f.txt, f.x, f.y); }
+  g.globalAlpha = 1;
+  const rem = b.notes[0].start - b.t;
+  if (rem > 0) { g.font = 'bold 72px system-ui'; g.textAlign = 'center'; g.fillStyle = 'rgba(255,255,255,.85)'; g.fillText(Math.ceil(rem), W / 2, H / 2); g.textAlign = 'start'; }
+}
+
+/* ---------- finish & rewards ---------- */
+function finish(win) {
+  const b = B; if (b.ended) return; b.ended = true; cancelAnimationFrame(raf);
+  const acc = b.attempted > 0 ? b.hit / b.attempted : 0;
+  const stars = win ? (acc >= 0.85 ? 3 : acc >= 0.7 ? 2 : 1) : 0;
+  const zi = cur.zi, boost = 1 + 0.15 * S.relics.throat;
+  let xp = win ? Math.round((40 + zi * 25 + stars * 15 + Math.min(b.maxCombo, 10) * 3) * boost) : 12;
+  let gold = win ? 15 + stars * 10 + zi * 10 : 3, bonus = 0;
+  if (win) {
+    S.wins++; S.stars[b.q.id] = Math.max(S.stars[b.q.id] || 0, stars);
+    const today = new Date().toISOString().slice(0, 10);
+    if (S.lastDay !== today) { const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10); S.streak = S.lastDay === y ? S.streak + 1 : 1; S.lastDay = today; bonus = 20 + 5 * Math.min(S.streak, 7); gold += bonus; }
+  }
+  S.gold += gold; S.xp += xp; let ups = 0;
+  while (S.xp >= xpNeed(S.lvl)) { S.xp -= xpNeed(S.lvl); S.lvl++; ups++; }
+  save();
+  let tip = '';
+  if (!win) {
+    if (b.voicedT < 0.5) tip = 'I barely heard you. Check mic permission, or use Demo voice.';
+    else {
+      const bad = b.notes.filter(n => n.done && n.errN > 5).sort((a, c) => a.hit / a.dur - c.hit / c.dur)[0];
+      if (bad) { const avg = bad.errSum / bad.errN; tip = Math.abs(avg) > 15 ? `Trickiest note: ${pc(bad.midi)}. You drifted ${avg < 0 ? 'flat' : 'sharp'} by about ${Math.round(Math.abs(avg))}¢.` : `Trickiest note: ${pc(bad.midi)}. Hold it steadier and breathe from the belly.`; }
+      else tip = 'Use “Hear the spell” first, then match the note.';
+    }
+  }
+  const nx = win ? nextOf(cur.zi, cur.qi) : null;
+  $('#battle').classList.add('hidden');
+  openSheet(`<div class="big">${win ? '🏆' : '💀'}</div><h2 style="text-align:center;color:var(--ink);margin:0">${win ? 'Victory!' : 'The foe resisted…'}</h2>
+    ${win ? `<div class="stars-big" style="color:var(--gold)">${'★'.repeat(stars)}<span style="opacity:.2">${'★'.repeat(3 - stars)}</span></div>` : ''}
+    ${ups ? `<div class="lvlup">⬆ LEVEL UP! You are now level ${S.lvl}</div>` : ''}
+    <div class="kv"><span>Accuracy</span><b>${Math.round(acc * 100)}%</b></div>
+    <div class="kv"><span>Best combo</span><b>🔥 ${b.maxCombo}</b></div>
+    <div class="kv"><span>XP</span><b>+${xp}</b></div>
+    <div class="kv"><span>Gold</span><b>🪙 +${gold}${bonus ? ` (daily bonus ${bonus}, streak ${S.streak})` : ''}</b></div>
+    ${tip ? `<div class="notice" style="margin-top:10px">${tip}</div>` : ''}
+    <div class="row" style="margin-top:14px"><button class="btn" style="flex:1" data-a="retry">↻ Retry</button>
+    ${nx ? `<button class="btn good" style="flex:1" data-a="next">Next ▶</button>` : ''}
+    <button class="btn primary" style="flex:1" data-a="home">Map</button></div>`, true);
+  B = null; show();
+}
+
+/* ---------- actions ---------- */
+const A = {
+  tab: d => { tab = d.t; show(); },
+  voice: d => { S.voice = d.v; save(); show(); },
+  mic: async () => { await enableMic(); show(); },
+  demoMode: () => { input = 'demo'; notice = ''; show(); },
+  octave: () => { S.anyOctave = !S.anyOctave; save(); show(); },
+  quest: d => openPrep(+d.z, +d.q),
+  hear: hearSpell, close: closeSheet, fight: startBattle,
+  retry: () => { closeSheet(); openPrep(cur.zi, cur.qi); },
+  next: () => { const n = nextOf(cur.zi, cur.qi); if (n) openPrep(n[0], n[1]); },
+  home: () => { closeSheet(); tab = 'quests'; show(); },
+  pause: () => { if (!B) return; B.paused = true; openSheet(`<h3 style="text-align:center;margin:0 0 12px">Paused</h3><div class="row"><button class="btn" style="flex:1" data-a="flee">Flee</button><button class="btn primary" style="flex:1" data-a="resume">Keep fighting</button></div>`, true); },
+  resume: () => { closeSheet(); if (B) { B.paused = false; B.last = performance.now(); } },
+  flee: () => { closeSheet(); cancelAnimationFrame(raf); B = null; $('#battle').classList.add('hidden'); show(); },
+  demoToggle: e => { demo.on = !demo.on; document.querySelectorAll('[data-a=demoToggle]').forEach(x => x.textContent = demo.on ? 'Voice ON' : 'Voice OFF'); },
+  ref: () => { const c = getCtx(); if (c.resume) c.resume(); tone(root(), c.currentTime + 0.02, 1.5); },
+  buy: d => { const r = RELICS.find(x => x.id === d.r), rank = S.relics[r.id], cost = r.base * (rank + 1); if (rank < 3 && S.gold >= cost) { S.gold -= cost; S.relics[r.id]++; save(); show(); } },
+  reset: e => { if (e.dataset.arm) { try { localStorage.removeItem(KEY); } catch (x) {} location.reload(); } else { e.textContent = 'Tap again to erase everything'; e.dataset.arm = 1; } }
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-a]'); if (!el) return;
+  const fn = A[el.dataset.a]; if (!fn) return;
+  if (el.dataset.a === 'reset') fn(el); else fn(el.dataset);
+});
+document.addEventListener('input', e => { if (e.target.classList.contains('demo-slider')) demo.midi = +e.target.value; });
+document.addEventListener('visibilitychange', () => { if (document.hidden && B && !B.paused && !B.ended) A.pause(); });
+
+show();
+})();
+</script>
+</body>
+</html>
