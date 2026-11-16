@@ -195,6 +195,14 @@ h1,h2,h3,.disp{font-family:var(--display);font-weight:600;margin:0;text-wrap:bal
 .meter{width:100%;max-width:420px;height:210px;border-radius:20px;background:#fff;box-shadow:0 0 0 2px var(--line) inset;touch-action:none}
 .holdbar{width:100%;max-width:420px;height:14px;border-radius:8px;background:#e1e7ec;overflow:hidden}
 .holdbar i{display:block;height:100%;width:0;background:var(--brand);border-radius:8px}
+.offbar{width:100%;max-width:420px;height:6px;border-radius:4px;background:#f3e3e3;overflow:hidden;margin-top:-6px}
+.offbar i{display:block;height:100%;width:0;background:#ef5d5d;border-radius:4px;transition:width .1s}
+.cue.bad{color:var(--coral-d,#c94040)}
+.meter.shake{animation:shake .45s}
+.cele{position:fixed;left:50%;top:38%;z-index:61;pointer-events:none;font:700 46px var(--display);color:#fff;white-space:nowrap;
+  -webkit-text-stroke:2px rgba(0,0,0,.12);text-shadow:0 4px 0 #0c8a6a,0 10px 24px rgba(20,163,127,.5);animation:cele 1.3s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes cele{0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-8deg)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(3deg)}
+  32%{transform:translate(-50%,-50%) scale(1) rotate(0)}75%{opacity:1;transform:translate(-50%,-62%) scale(1)}100%{opacity:0;transform:translate(-50%,-80%) scale(.9)}}
 .cue{font:600 20px var(--display);min-height:28px}
 .cue.ok{color:var(--brand)}.cue.up,.cue.down{color:var(--sky-d)}
 .ls-foot{padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:2px solid var(--line);background:#fff;display:flex;flex-direction:column;gap:10px}
@@ -448,7 +456,12 @@ function loadPack() {
     Object.keys(j).forEach(k => fetch('sounds/' + j[k]).then(r => r.arrayBuffer()).then(b => AU.ctx.decodeAudioData(b)).then(buf => { PACK[k] = buf; if (k === 'menu') startMenu(); }).catch(() => {})); }).catch(() => {});
   loadInst();
 }
-function sfx(n, a) { if (!S.sfx) return; try { const c = actx(); if (PACK[n]) { const s = c.createBufferSource(), g = c.createGain(); s.buffer = PACK[n]; g.gain.value = PACK_VOL[n] || 0.6; s.connect(g); g.connect(AU.fxg); s.start(); return; } SFX[n](c.currentTime + 0.01, a); } catch (e) {} }
+/* jingles (right, miss, perfect...) are allowed to finish before the next note or listening starts, up to 1.8s */
+const JINGLE = {right: 1, miss: 1, perfect: 1, star: 1}; let jingleEnd = 0;
+function jingleLeft() { return AU.ctx ? Math.min(1800, Math.max(0, (jingleEnd - AU.ctx.currentTime) * 1000)) : 0; }
+function sfx(n, a) { if (!S.sfx) return; try { const c = actx();
+  if (JINGLE[n]) jingleEnd = Math.max(jingleEnd, c.currentTime + (PACK[n] ? PACK[n].duration : 0.6));
+  if (PACK[n]) { const s = c.createBufferSource(), g = c.createGain(); s.buffer = PACK[n]; g.gain.value = PACK_VOL[n] || 0.6; s.connect(g); g.connect(AU.fxg); s.start(); return; } SFX[n](c.currentTime + 0.01, a); } catch (e) {} }
 /* effects are faded out whenever the game is listening to a voice */
 function ramp(node, v, sec) { const t = AU.ctx.currentTime; node.gain.cancelScheduledValues(t); node.gain.setValueAtTime(node.gain.value, t); node.gain.linearRampToValueAtTime(v, t + sec); }
 let fxOn = 1;
@@ -611,9 +624,28 @@ function ambient(ts) {
   }
   if (conf.length) {
     fxc.clearRect(0, 0, BW, BH);
-    for (const p of conf) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; fxc.save(); fxc.translate(p.x, p.y); fxc.rotate(p.rot); fxc.globalAlpha = clamp(p.life, 0, 1); fxc.fillStyle = p.c; fxc.fillRect(-5, -3, 10, 6); fxc.restore(); }
+    for (const p of conf) { p.life -= dt;
+      if (p.ring) { const k = 1 - p.life / p.max; fxc.globalAlpha = clamp(p.life / p.max, 0, 1); fxc.strokeStyle = p.c; fxc.lineWidth = 10 * (1 - k) + 1; fxc.beginPath(); fxc.arc(p.x, p.y, 20 + k * p.r, 0, 7); fxc.stroke(); fxc.globalAlpha = 1; continue; }
+      if (p.g) { p.vy += p.g * dt; p.vx *= 1 - 1.6 * dt; }
+      p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; fxc.save(); fxc.translate(p.x, p.y); fxc.rotate(p.rot); fxc.globalAlpha = clamp(p.life, 0, 1); fxc.fillStyle = p.c;
+      if (p.t) { fxc.font = `700 ${p.s}px Fredoka, sans-serif`; fxc.fillText(p.t, -p.s / 3, p.s / 3); } else if (p.dot) { fxc.beginPath(); fxc.arc(0, 0, p.s, 0, 7); fxc.fill(); } else fxc.fillRect(-5, -3, 10, 6);
+      fxc.restore(); }
     conf = conf.filter(p => p.life > 0 && p.y < BH + 30); if (!conf.length) fxc.clearRect(0, 0, BW, BH);
   }
+}
+
+/* big burst for a correct answer: shockwave rings, a spray of sparks and notes from the spot, then confetti rain */
+function celebrate(el, hueNote) {
+  const r = el ? el.getBoundingClientRect() : {left: BW / 2, top: BH / 2, width: 0, height: 0}, x = r.left + r.width / 2, y = r.top + r.height / 2;
+  const cs = hueNote != null ? [col(hueNote, 55), col(hueNote, 68), '#ffd34d', '#ffffff'] : ['#14a37f', '#3d8fe6', '#ffd34d', '#ef5d5d', '#8b62e8'];
+  conf.push({ring: 1, x, y, r: 170, life: 0.7, max: 0.7, c: cs[0]}, {ring: 1, x, y, r: 260, life: 1, max: 1, c: '#ffd34d'});
+  for (let i = 0; i < 70; i++) { const a = R() * Math.PI * 2, v = 260 + R() * 520, glyph = i % 7 === 0;
+    conf.push({x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 120, g: 520, rot: R() * 6, vr: (R() - 0.5) * 8, life: 1.2 + R() * 0.8, c: cs[i % cs.length], dot: !glyph && i % 2 === 0, s: glyph ? 22 + R() * 12 : 3 + R() * 5, t: glyph ? (i % 2 ? '♪' : '★') : null}); }
+  confetti(45);
+  const host = $('#lesson'); if (!host || host.classList.contains('hidden')) return;
+  const w = document.createElement('div'); w.className = 'cele'; w.textContent = ['Nailed it!', 'Perfect!', 'Yes!', 'Beautiful!', 'Spot on!'][Math.floor(R() * 5)];
+  host.appendChild(w); setTimeout(() => w.remove(), 1300);
+  if (navigator.vibrate) try { navigator.vibrate(30); } catch (e) {}
 }
 
 /* ================= UI shell ================= */
@@ -829,7 +861,7 @@ function renderStep() {
     const ns = s.t === 'sing' ? [s.n] : s.notes; L.st.k = 0; L.st.ns = ns; L.st.hold = 0; L.st.need = s.t === 'sing' ? s.hold : 0.7;
     body = `<p class="ls-q">${s.t === 'sing' ? (s.noShow ? 'Sing C from memory and hold it' : `Sing ${NL(s.n)} and hold it`) : 'Sing these notes in order'}</p>
       ${s.t === 'sing' ? `<div class="badge ${s.noShow ? 'q' : ''}" style="--nc:${col(s.n, 52)}">${s.noShow ? '?' : NL(s.n)}</div>` : `<div class="seqrow" id="seqRow">${ns.map((o, i) => `<span class="${i === 0 ? 'cur' : ''}" style="--nc:${col(o, 52)}">${NL(o)}</span>`).join('')}</div>`}
-      <canvas class="meter" id="lsMeter"></canvas><div class="holdbar"><i id="lsHold"></i></div><div class="cue" id="lsCue">Listen first…</div>
+      <canvas class="meter" id="lsMeter"></canvas><div class="holdbar"><i id="lsHold"></i></div><div class="offbar" title="Fills while you're off the note. If it fills, you start over."><i id="lsOff"></i></div><div class="cue" id="lsCue">Listen first…</div>
       <div class="row"><button class="play" data-a="lsHear">▶ Hear ${s.t === 'sing' ? 'it' : 'them'} again</button></div>`;
     foot = `<div class="row"><button class="btn" data-a="lsSkip">Can't sing now</button><button class="btn primary" data-a="lsNext" id="lsBtn" disabled>Continue</button></div>`;
   } else if (s.t === 'same') {
@@ -847,9 +879,11 @@ function renderStep() {
   }
   $('#lesson').innerHTML = `<div class="ls-top"><button class="xbtn" data-a="lsQuit" aria-label="Leave lesson">✕</button><div class="ls-prog"><i style="width:${pct}%"></i></div></div>
     <div class="ls-body">${body}</div><div class="ls-foot" id="lsFoot"><div class="fb" id="lsFb" style="display:none"></div>${foot}</div>`;
-  if (s.t === 'intro') { $('#lsBtn').disabled = false; setTimeout(() => hearStep(), 350); }
-  else if (s.t === 'sing' || s.t === 'seq') { setTimeout(() => startListen(true), 300); }
-  else if (s.t !== 'tap') setTimeout(() => hearStep(), 350);
+  const w = jingleLeft(), mine = L.i;   // let the last jingle finish first
+  const go = f => setTimeout(() => { if (LS === L && L.i === mine) f(); }, w);
+  if (s.t === 'intro') { $('#lsBtn').disabled = false; go(() => hearStep()); }
+  else if (s.t === 'sing' || s.t === 'seq') { go(() => startListen(true)); }
+  else if (s.t !== 'tap') go(() => hearStep());
 }
 function hearStep() {
   const s = LS.steps[LS.i], c = actx();
@@ -864,30 +898,44 @@ function startListen(first) {   // play the guide, then listen; the guide never 
   const L = LS; if (!L) return; const s = L.steps[L.i]; listening = false; duck(1);
   const ms = (s.t === 'sing' && s.noShow && first) ? 0 : hearStep();
   const cue = $('#lsCue'); if (cue) { cue.textContent = 'Listen…'; cue.className = 'cue'; }
-  L.st.listenAt = performance.now() + ms + 250; L.st.trail = []; hist.length = 0;
+  L.st.listenAt = performance.now() + ms + 250; L.st.trail = []; L.st.off = 0; L.st.pause = false; hist.length = 0;
   cancelAnimationFrame(lsRaf); let last = performance.now();
   const loop = now => { if (!LS || LS !== L || L.st.done) return; const dt = Math.min(0.05, (now - last) / 1000); last = now; singFrame(dt, now); lsRaf = requestAnimationFrame(loop); };
   lsRaf = requestAnimationFrame(loop);
 }
 function singFrame(dt, now) {
   const L = LS, s = L.steps[L.i], st = L.st, cue = $('#lsCue'); if (!cue) return;
+  if (st.pause) return;
   if (now < st.listenAt) { drawMeter(null); return; }
   if (!listening) { listening = true; duck(0); cue.textContent = input === 'demo' ? 'Touch and drag the meter to sing' : 'Your turn: sing!'; }
   const target = st.ns[st.k], v = sense(now / 1000), tol = lsTol(L.e.ui);
   let m = null, cents = null;
   if (v.voiced) { m = S.anyOctave ? fold(v.m, root() + target) : v.m; cents = (m - (root() + target)) * 100; }
   const inTune = cents != null && Math.abs(cents) <= tol;
-  if (inTune) { st.hold += dt; L.tuneT += dt; } else st.hold = Math.max(0, st.hold - dt * 0.6);
+  if (inTune) { st.hold += dt; L.tuneT += dt; st.off = Math.max(0, st.off - dt * 1.5); } else { st.hold = Math.max(0, st.hold - dt * 0.6); if (cents != null) st.off += dt; }
+  const offEl = $('#lsOff'); if (offEl) offEl.style.width = clamp(st.off / OFF_LIMIT, 0, 1) * 100 + '%';
+  if (st.off >= OFF_LIMIT) { offReset(); return; }
   st.trail.push(m); if (st.trail.length > 90) st.trail.shift();
   $('#lsHold').style.width = clamp(st.hold / st.need, 0, 1) * 100 + '%';
   cue.className = 'cue ' + (inTune ? 'ok' : cents == null ? '' : cents < 0 ? 'up' : 'down');
-  cue.textContent = cents == null ? (input === 'demo' ? 'Touch and drag the meter to sing' : 'Sing ' + NL(target) + '…') : inTune ? 'That\'s it, hold it…' : cents < 0 ? `A little higher ↑ (you're on ${pc(m)})` : `A little lower ↓ (you're on ${pc(m)})`;
+  cue.textContent = !inTune && st.off > OFF_LIMIT * 0.55 ? 'Find the note before the red bar fills!' : cents == null ? (input === 'demo' ? 'Touch and drag the meter to sing' : 'Sing ' + NL(target) + '…') : inTune ? 'That\'s it, hold it…' : cents < 0 ? `A little higher ↑ (you're on ${pc(m)})` : `A little lower ↓ (you're on ${pc(m)})`;
   drawMeter(m, target);
   if (st.hold >= st.need) {
     st.k++; st.hold = 0; const row = $('#seqRow');
     if (row) [...row.children].forEach((c, i) => { c.className = i < st.k ? 'ok' : i === st.k ? 'cur' : ''; });
     if (st.k >= st.ns.length) { st.done = true; listening = false; duck(1); stepResult(true, s.t === 'sing' ? 'Right on ' + NL(st.ns[0]) + '!' : 'All in tune!'); }
   }
+}
+/* singing the wrong note for too long sends you back to the start of the step */
+const OFF_LIMIT = 2;   // seconds of off-pitch singing allowed
+function offReset() {
+  const L = LS, st = L.st; st.pause = true; listening = false; duck(1); sfx('miss');
+  if (!st.reset) { st.reset = true; L.miss++; }   // costs a star, once per step
+  st.k = 0; st.hold = 0; st.off = 0; $('#lsHold').style.width = '0%'; $('#lsOff').style.width = '0%';
+  const row = $('#seqRow'); if (row) [...row.children].forEach((c, i) => { c.className = i === 0 ? 'cur' : ''; });
+  const cue = $('#lsCue'); cue.className = 'cue bad'; cue.textContent = 'Too far off for too long. Listen again and start over.';
+  const m = $('#lsMeter'); m.classList.remove('shake'); void m.offsetWidth; m.classList.add('shake');
+  setTimeout(() => { if (LS === L && !st.done) startListen(false); }, 1600);
 }
 function drawMeter(m, target) {
   const cvs = $('#lsMeter'); if (!cvs) return; const r = cvs.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
@@ -907,7 +955,7 @@ function stepResult(ok, msg) {
   const L = LS, foot = $('#lsFoot'), fb = $('#lsFb'); L.st.done = true; L.st.ok = ok; if (!ok) L.miss++;
   foot.className = 'ls-foot ' + (ok ? 'ok' : 'no'); fb.style.display = 'flex'; fb.innerHTML = (ok ? '✓ ' : '✗ ') + msg;
   const b = $('#lsBtn'); b.disabled = false; b.textContent = 'Continue'; b.dataset.a = 'lsNext'; b.className = 'btn ' + (ok ? 'primary' : 'bad');
-  if (ok) { sfx('right'); prog('ear', ['pick', 'same', 'chordq', 'tap'].includes(L.steps[L.i].t) ? 1 : 0); } else sfx('miss');
+  if (ok) { sfx('right'); celebrate(document.querySelector('.ls-body .badge, #seqRow, .opt.ok, .kb') || $('#lsFb'), L.steps[L.i].n ?? null); prog('ear', ['pick', 'same', 'chordq', 'tap'].includes(L.steps[L.i].t) ? 1 : 0); } else sfx('miss');
 }
 function lessonDone() {
   const L = LS, e = L.e, stars = L.miss === 0 ? 3 : L.miss <= 2 ? 2 : 1, first = !S.les[e.l.id];
@@ -1481,7 +1529,7 @@ const A = {
   introMic: async () => { await enableMic(); S.seen = true; save(); $('#intro').classList.add('hidden'); show(); },
   introDemo: () => { input = 'demo'; S.seen = true; save(); $('#intro').classList.add('hidden'); show(); toast('Touch mode: drag on the meter to sing. Listening lessons work without a mic.'); }
 };
-const QUIET = {inst: 1, pause: 1, resume: 1, tea: 1, again: 1, ref: 1, voice: 1, pop: 1, stat: 1, equip: 1, sell: 1, claim: 1, buyTea: 1, qplay: 1, qans: 1, pad: 1, parry: 1, lsAns: 1, lsHear: 1, kbKey: 1, lsCheck: 1, lsPlayChord: 1, bossHear: 1, lsSkip: 1};
+const QUIET = {inst: 1, pause: 1, resume: 1, tea: 1, again: 1, ref: 1, voice: 1, pop: 1, stat: 1, equip: 1, sell: 1, claim: 1, buyTea: 1, qplay: 1, qans: 1, pad: 1, parry: 1, lsAns: 1, lsNext: 1, lsHear: 1, kbKey: 1, lsCheck: 1, lsPlayChord: 1, bossHear: 1, lsSkip: 1};
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el || el.disabled) return; const a = el.dataset.a, fn = A[a]; if (!fn) return;
   if (!QUIET[a] && !G && !listening) sfx('tap');
