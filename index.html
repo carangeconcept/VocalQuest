@@ -1735,6 +1735,28 @@ function ideasSheet(li) {
     <button class="btn" style="width:100%;margin-top:4px" data-a="done">Close</button>`, true);
 }
 
+/* ---------- hand the song to Claude, who makes Suno sing it ---------- */
+const SUNO_STYLES = ['Pop', 'R&B', 'Acoustic', 'Rock', 'Country', 'Soul', 'Indie', 'Hip-hop', 'Gospel', 'Lo-fi', 'Musical theatre', 'EDM'];
+function sunoSheet() {
+  const s = song(); s.suno = s.suno || {style: 'Pop', voice: 'Any'};
+  const ready = s.lines.filter(l => l.notes.length).length, words = s.lines.filter(l => l.text).length;
+  openSheet(`<h2 class="res-t" style="margin-bottom:4px">🎙️ Sing it with Suno</h2>
+    <div class="tiny" style="text-align:center;margin-bottom:12px">Claude turns your melody into a guide track and has Suno sing your words over it, in the style you pick.</div>
+    <div class="tiny" style="margin-bottom:6px">STYLE</div><div class="chips">${SUNO_STYLES.map(x => `<button class="chip ${s.suno.style === x ? 'on' : ''}" data-a="wSunoSet" data-k="style" data-v="${x}">${x}</button>`).join('')}</div>
+    <div class="tiny" style="margin:14px 0 6px">VOICE</div><div class="chips">${['Any', 'Female', 'Male'].map(x => `<button class="chip ${s.suno.voice === x ? 'on' : ''}" data-a="wSunoSet" data-k="voice" data-v="${x}">${x}</button>`).join('')}</div>
+    <input class="w-words" style="margin-top:14px" data-in="sunoExtra" placeholder="Anything else? e.g. slow, dreamy, piano only" value="${esc(s.suno.extra || '')}">
+    <div class="tiny" style="margin-top:10px;color:${ready && words ? 'var(--brand)' : 'var(--sun-d)'}">${ready} line${ready === 1 ? '' : 's'} with a melody, ${words} with words${ready && words < ready ? '. Lines without words will be hummed' : ''}</div>
+    <button class="btn primary" style="width:100%;margin-top:12px" data-a="wSunoCopy" ${ready ? '' : 'disabled'}>📋 Copy song for Claude</button>
+    <div class="tiny" style="text-align:center;margin-top:8px">Then paste it into your chat with Claude and say "sing this".</div>
+    <button class="btn" style="width:100%;margin-top:10px" data-a="done">Close</button>`, true);
+}
+function sunoText() {
+  const s = song(), o = s.suno || {}, data = {v: 1, title: s.title, mood: s.mood, style: o.style, voice: o.voice, extra: o.extra || '', lines: s.lines.filter(l => l.notes.length).map(l => ({w: l.text, n: l.notes.map(n => [n.m, +n.d.toFixed(3), +n.r.toFixed(3)])}))};
+  return `🎵 Vocal Quest song for Suno\nTitle: ${s.title}\nStyle: ${o.style}${o.voice !== 'Any' ? ', ' + o.voice.toLowerCase() + ' vocals' : ''}${o.extra ? ', ' + o.extra : ''}\n\n${data.lines.map((l, i) => (l.w || '(hum)') + '   [' + l.n.map(n => pc(n[0])).join(' ') + ']').join('\n')}\n\nVQSONG ${JSON.stringify(data)}`;
+}
+async function copyText(t) { try { await navigator.clipboard.writeText(t); return true; } catch (e) {}
+  try { const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok; } catch (e) { return false; } }
+
 /* ---------- recording ---------- */
 async function recStart(li) {
   if (SW.rec) return; if (input !== 'mic') { const ok = await enableMic(); if (!ok) { toast('Microphone is off. Use 🎹 Tap notes instead.'); return; } }
@@ -1803,6 +1825,7 @@ function renderWrite() {
       <div class="w-acts"><button class="btn sm" data-a="wPlay" data-l="${li}" ${n ? '' : 'disabled'}>▶ Play</button><button class="btn sm" data-a="wRec" data-l="${li}">🎤 ${n ? 'Re-hum' : 'Hum'}</button><button class="btn sm" data-a="wKeys" data-l="${li}">🎹</button>
         <button class="btn sm primary" data-a="wSug" data-l="${li}" ${n ? '' : 'disabled'}>✨ Suggest words</button><button class="btn sm" data-a="wMore" data-l="${li}">⋯</button></div></div>`; });
   h += `<div class="w-add"><button class="btn primary" data-a="wRec">🎤 Hum a new line</button>${s.lines.length ? '<button class="btn" data-a="wNext">✨ What comes next?</button>' : ''}</div>
+    ${s.lines.some(l => l.notes.length) ? '<button class="btn" style="width:100%;margin-top:10px" data-a="wSuno">🎙️ Sing it with Suno</button>' : ''}
     <div class="tiny" style="text-align:center;margin:10px 0 4px">Tip: tap a note to move it, stretch it or delete it. Headphones help the mic hear you clearly.</div>`;
   $('#view').innerHTML = h;
 }
@@ -1846,6 +1869,11 @@ const WA = {
   wPlay: d => { SW.playing++; playLine(+d.l); }, wPlayAll: () => playSong(),
   wNote: d => { const li = +d.l, i = +d.i, same = SW.sel && SW.sel[0] === li && SW.sel[1] === i; SW.sel = same ? null : [li, i]; renderWrite(); const n = song().lines[li].notes[i]; tone(n.m, actx().currentTime + 0.02, Math.min(0.6, n.d), 0.2); },
   wEd: d => wEdit(d.o),
+  wSuno: () => sunoSheet(),
+  wSunoSet: d => { song().suno[d.k] = d.v; saveSongs(); sunoSheet(); },
+  wSunoCopy: async () => { const t = sunoText(), ok = await copyText(t);
+    if (ok) { toast('Copied! Paste it into your chat with Claude'); closeSheet(); }
+    else openSheet(`<h2 class="res-t">Copy this</h2><div class="tiny" style="text-align:center;margin-bottom:8px">Press and hold, Select all, Copy, then paste it to Claude.</div><textarea class="w-words" rows="10" readonly>${esc(t)}</textarea><button class="btn" style="width:100%;margin-top:10px" data-a="done">Close</button>`, true); },
   wTune: () => { WOPT.tune = !WOPT.tune; saveWopt(); renderWrite(); },
   wMode: d => { const li = +d.l, l = song().lines[li]; if (!l.raw) return; l.notes = d.v === 'raw' ? l.raw.map(n => ({...n})) : autoTune(l.raw, li); l.mode = d.v; SW.sel = null; saveSongs(); renderWrite(); playLine(li); },
   wIdeas: d => ideasSheet(+d.l),
@@ -1864,6 +1892,7 @@ const WA = {
 };
 document.addEventListener('input', e => { const t = e.target; if (!t.dataset || !t.dataset.in || tab !== 'write') return; const s = song();
   if (t.dataset.in === 'title') { s.title = t.value || 'Untitled song'; saveSongs(); }
+  if (t.dataset.in === 'sunoExtra') { s.suno = s.suno || {style: 'Pop', voice: 'Any'}; s.suno.extra = t.value.slice(0, 120); saveSongs(); }
   if (t.dataset.in === 'words') { const li = +t.dataset.l; s.lines[li].text = t.value; saveSongs();   // refresh syllables under the notes without losing the cursor
     const card = t.closest('.w-line'), roll = card.querySelector('.w-scroll'); if (roll) { const tmp = document.createElement('div'); tmp.innerHTML = rollHTML(s.lines[li], li); const old = card.querySelector('.w-scroll + .tiny'); if (old) old.remove(); roll.replaceWith(...tmp.childNodes); }
     const sc = sylCount(t.value), n = s.lines[li].notes.length, info = card.querySelector('.row.sp .tiny'); if (info) { info.textContent = n + ' notes' + (t.value ? ' · ' + sc + ' syllables' + (sc === n ? ' ✓' : '') : ''); info.style.color = !t.value ? 'var(--mute)' : sc === n ? 'var(--brand)' : 'var(--sun-d)'; } }
