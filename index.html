@@ -348,6 +348,9 @@ const xpNeed = l => 60 + 40 * (l - 1);
 /* ================= save ================= */
 const KEY = 'vocalquest.v3', BEST0 = {glide: 0, echo: 0, flame: 0, name: 0, dir: 0, tune: 0, simon: 0, blind: 0};
 let S = {voice: 'tenor', lvl: 1, xp: 0, gold: 0, sp: 0, stats: {pow: 0, foc: 0, vit: 0, luck: 0}, gear: {charm: null, cloak: null, lute: null}, bag: [], tea: 1, les: {}, streak: 0, lastDay: '', anyOctave: true, best: Object.assign({}, BEST0), daily: null, sfx: true, music: true, inst: 'voice', seen: false, nid: 1};
+try {   // opening the page with ?reset in the address wipes the save (handy while testing)
+  if (/[?&]reset\b/.test(location.search)) { ['vocalquest.v3', 'vocalquest.v2', 'vocalquest.v1'].forEach(k => localStorage.removeItem(k)); history.replaceState(null, '', location.pathname); }
+} catch (e) {}
 try {
   const j = localStorage.getItem(KEY);
   if (j) { const o = JSON.parse(j); S = Object.assign(S, o); S.stats = Object.assign({pow: 0, foc: 0, vit: 0, luck: 0}, o.stats); S.best = Object.assign({}, BEST0, o.best); S.gear = Object.assign({charm: null, cloak: null, lute: null}, o.gear); S.les = o.les || {}; }
@@ -694,7 +697,9 @@ function renderHero() {
     <div class="row sp" style="margin-top:14px"><div>Any octave<div class="tiny">Sing each note in whichever octave is comfy</div></div><button class="chip ${S.anyOctave ? 'on' : ''}" data-a="octave">${S.anyOctave ? 'On' : 'Off'}</button></div>
     <div class="row sp" style="margin-top:14px"><div>Sound effects</div><button class="chip ${S.sfx ? 'on' : ''}" data-a="tgl" data-k="sfx">${S.sfx ? 'On' : 'Off'}</button></div>
     <div class="row sp" style="margin-top:14px"><div>Theme music<div class="tiny">Always silent while you listen or sing</div></div><button class="chip ${S.music ? 'on' : ''}" data-a="tgl" data-k="music">${S.music ? 'On' : 'Off'}</button></div>
-    <button class="link" data-a="reset">Reset all progress</button></div>`;
+    </div><div class="sec"><h3>Start over</h3></div><div class="card in" style="--i:5">
+    <div class="tiny" style="margin-bottom:10px">Erase every lesson, star, level, item and setting on this device and begin again from the first lesson.</div>
+    <button class="btn" style="width:100%;color:#ef5d5d;border-color:#ef5d5d" data-a="reset">↺ Start over</button></div>`;
   $('#view').innerHTML = h;
 }
 function renderShop() {
@@ -1461,7 +1466,7 @@ const A = {
   buyTea: () => { if (S.gold < 40 || S.tea >= 5) return; S.gold -= 40; S.tea++; save(); sfx('coin'); show(); },
   pop: () => { if (!pend) return; const p = pend; pend = null; sfx('chest', p.it.rar); if (p.it.rar >= 2) confetti(60);
     openSheet(`<h2 class="res-t" style="color:${RAR[p.it.rar].c}">${RAR[p.it.rar].n}!</h2>${itemHTML(p.it)}${p.gold || p.tea ? `<div class="rewards">${p.gold ? `<span class="rw gold">🪙 +${p.gold}</span>` : ''}${p.tea ? '<span class="rw">🍯 +1</span>' : ''}</div>` : ''}<div class="row"><button class="btn primary" data-a="done">Nice!</button></div>`, true); },
-  reset: e => { if (e.arm) { try { localStorage.removeItem(KEY); localStorage.removeItem('vocalquest.v2'); localStorage.removeItem('vocalquest.v1'); } catch (x) {} location.reload(); } else { e.el.textContent = 'Tap again to erase everything'; e.el.dataset.arm = 1; } },
+  reset: e => { if (e.arm) { try { localStorage.removeItem(KEY); localStorage.removeItem('vocalquest.v2'); localStorage.removeItem('vocalquest.v1'); } catch (x) {} location.reload(); } else { e.el.textContent = 'Tap again to erase everything'; e.el.dataset.arm = 1; setTimeout(() => { if (e.el.isConnected) { e.el.textContent = '↺ Start over'; delete e.el.dataset.arm; } }, 4000); } },
   voice: d => { S.voice = d.v; save(); document.querySelectorAll('[data-a=voice]').forEach(b => b.classList.toggle('on', b.dataset.v === S.voice)); if (S.seen && !$('#scrim').offsetParent) show(); try { tone(root(), actx().currentTime + 0.05, 1.0); } catch (e) {} },
   mic: async () => { if (await enableMic()) toast('Microphone on. Echo is listening.'); show(); },
   demoMode: () => { input = 'demo'; toast('Touch mode: touch and drag to sing.'); show(); },
