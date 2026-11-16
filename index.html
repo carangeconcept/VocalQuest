@@ -235,6 +235,27 @@ h1,h2,h3,.disp{font-family:var(--display);font-weight:600;margin:0;text-wrap:bal
 .q-clock.red b{color:var(--coral);animation:pulseR .5s infinite}.q-clock.red i{background:var(--coral)}
 @keyframes pulseR{50%{transform:scale(1.12)}}
 .q-ans.n6{grid-template-columns:1fr 1fr 1fr}
+.w-title{width:100%;border:0;border-bottom:2px solid var(--line);font:600 24px var(--display);color:var(--ink);background:none;padding:4px 2px;outline:none}
+.w-title:focus{border-color:var(--brand)}
+.w-line{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.w-scroll{overflow-x:auto;margin:0 -16px;padding:0 16px;-webkit-overflow-scrolling:touch}
+.w-roll{position:relative;min-width:100%;background:repeating-linear-gradient(#fff 0 13px,#f4f7f9 13px 14px);border-radius:14px}
+.w-n{position:absolute;height:22px;border:0;border-radius:8px;background:var(--nc);color:#fff;font:800 11px var(--body);padding:0;box-shadow:0 3px 0 rgba(0,0,0,.15);transition:transform .1s,box-shadow .1s}
+.w-n.on{transform:scale(1.18);box-shadow:0 0 0 4px rgba(255,211,77,.8)}
+.w-n.sel{box-shadow:0 0 0 3px var(--ink);z-index:2}
+.w-s{position:absolute;bottom:4px;font:700 13px var(--body);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.w-s.cont{color:var(--mute)}.w-s.held{color:#c3cbd3}
+.w-tools,.w-acts{display:flex;flex-wrap:wrap;gap:8px}
+.w-words{width:100%;border:2px solid var(--line);border-radius:14px;padding:10px 12px;font:700 16px var(--body);color:var(--ink);resize:vertical;outline:none}
+.w-words:focus{border-color:var(--brand)}
+.w-add{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.w-opt{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;border:0;background:#fff;border-radius:16px;padding:12px 14px;margin-bottom:8px;box-shadow:0 0 0 2px var(--line) inset,0 3px 0 var(--line);font-size:16px}
+.w-opt.cur{box-shadow:0 0 0 2px var(--brand) inset,0 3px 0 var(--brand)}
+.w-opt:disabled{opacity:.45}
+.w-kb{display:flex;gap:4px;overflow-x:auto}
+.w-kb button{flex:1;min-width:38px;height:64px;border:0;border-radius:10px;background:#fff;box-shadow:0 0 0 2px var(--line) inset,0 4px 0 var(--nc);font:800 13px var(--body);display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px}
+.w-kb button:active{background:var(--nc);color:#fff}
+.w-live{width:100%;height:180px;margin:12px 0 6px;border-radius:16px;background:#fff;box-shadow:0 0 0 2px var(--line) inset}
 .q-tell.ok{color:var(--brand)}.q-tell.no{color:var(--coral)}
 .q-ans{display:grid;gap:12px;padding:6px 18px 22px}
 .q-ans.n2,.q-ans.n4{grid-template-columns:1fr 1fr}
@@ -480,7 +501,7 @@ let menuSrc = null, musWant = 0, musBlock = 0, listening = false;
 function startMenu() { if (menuSrc || !PACK.menu) return; menuSrc = AU.ctx.createBufferSource(); menuSrc.buffer = PACK.menu; menuSrc.loop = true; menuSrc.connect(AU.musg); menuSrc.start(); }
 function musicTick() {
   if (!AU.ctx) return;
-  const want = S.music && PACK.menu && !G && !Q && !LS && !VF.on && !listening && !document.hidden && AU.ctx.currentTime > musBlock ? 1 : 0;
+  const want = S.music && PACK.menu && !G && !Q && !LS && !VF.on && !listening && tab !== 'write' && !document.hidden && AU.ctx.currentTime > musBlock ? 1 : 0;
   if (want !== musWant) { musWant = want; ramp(AU.musg, want ? 0.5 : 0, want ? 1.6 : 0.12); }
 }
 setInterval(musicTick, 120);
@@ -674,7 +695,7 @@ function renderHud() {
 function renderTabs() {
   ensureDaily();
   const shop = !S.daily.chest || S.daily.q.some(q => !q.done && q.p >= DQ[q.k][1]);
-  const T = [['learn', '📖', 'Learn', false], ['practice', '🎮', 'Practice', false], ['hero', '✨', 'Hero', S.sp > 0], ['shop', '🏪', 'Shop', shop]];
+  const T = [['learn', '📖', 'Learn', false], ['practice', '🎮', 'Practice', false], ['hero', '✨', 'Hero', S.sp > 0], ['write', '✍️', 'Write', false], ['shop', '🏪', 'Shop', shop]];
   $('#tabs').innerHTML = T.map(x => `<button data-a="tab" data-t="${x[0]}" class="${tab === x[0] ? 'on' : ''}"><span>${x[1]}</span>${x[2]}${x[3] ? '<i class="dot"></i>' : ''}</button>`).join('');
 }
 const starStr = n => '★'.repeat(n) + '<s>' + '★'.repeat(3 - n) + '</s>';
@@ -754,7 +775,7 @@ function renderShop() {
     <div class="card"><span class="big">📜</span><b>Your record</b><div class="tiny">${Object.keys(S.les).length} of ${ALL.length} lessons · ${learned().length} notes learned</div></div></div>`;
   $('#view').innerHTML = h;
 }
-function show() { renderHud(); renderTabs(); ({learn: renderLearn, practice: renderPractice, hero: renderHero, shop: renderShop})[tab](); }
+function show() { renderHud(); renderTabs(); ({learn: renderLearn, practice: renderPractice, hero: renderHero, write: renderWrite, shop: renderShop})[tab](); }
 function renderIntro() {
   $('#intro').innerHTML = `<div class="box"><div class="logo">Vocal<br><span>Quest</span></div>
     <canvas id="introCv" width="340" height="340"></canvas>
@@ -1504,6 +1525,288 @@ function padTap(i) {
 }
 
 
+/* ================= Write: hum a melody, add words, get help with what comes next ================= */
+const SKEY = 'vocalquest.songs', MOODS = ['Love', 'Heartbreak', 'Hope', 'Freedom', 'Party', 'Night drive'];
+let SONGS = []; try { SONGS = JSON.parse(localStorage.getItem(SKEY) || '[]'); } catch (e) {}
+const SW = {cur: 0, sel: null, rec: null, keys: false, playing: 0};
+const saveSongs = () => { try { localStorage.setItem(SKEY, JSON.stringify(SONGS)); } catch (e) {} };
+const song = () => SONGS[SW.cur];
+function newSong() { SONGS.unshift({id: Date.now(), title: 'Untitled song', mood: 'Love', lines: []}); SW.cur = 0; SW.sel = null; saveSongs(); }
+
+/* ---------- AI: inside Claude the page can ask Claude; elsewhere a built-in helper fills in ---------- */
+let AI = null;
+(async () => { try { if (window.claude && window.claude.use) AI = await window.claude.use('sample'); } catch (e) { AI = null; } })();
+
+/* ---------- syllables ---------- */
+const SYL_EX = {every: ['ev', 'ery'], everything: ['ev', 'ery', 'thing'], everyone: ['ev', 'ery', 'one'], everybody: ['ev', 'ery', 'bod', 'y'], something: ['some', 'thing'], someone: ['some', 'one'],
+  sometimes: ['some', 'times'], somewhere: ['some', 'where'], somebody: ['some', 'bod', 'y'], nothing: ['noth', 'ing'], anything: ['an', 'y', 'thing'], anyone: ['an', 'y', 'one'], forever: ['for', 'ev', 'er'],
+  heaven: ['heav', 'en'], fire: ['fire'], desire: ['de', 'sire'], higher: ['high', 'er'], hour: ['hour'], our: ['our'], lonely: ['lone', 'ly'], lovely: ['love', 'ly'], dancing: ['dan', 'cing'],
+  people: ['peo', 'ple'], maybe: ['may', 'be'], baby: ['ba', 'by'], tired: ['tired'], loved: ['loved'], moved: ['moved'], lives: ['lives'], somehow: ['some', 'how'], inside: ['in', 'side'], outside: ['out', 'side'],
+  goodbye: ['good', 'bye'], alright: ['al', 'right'], radio: ['ra', 'di', 'o'], highway: ['high', 'way'], headlights: ['head', 'lights'], midnight: ['mid', 'night'], tomorrow: ['to', 'mor', 'row']};
+function sylWord(w) {
+  if (w.includes('-')) return w.split('-').filter(Boolean);
+  const lw = w.toLowerCase(), ex = SYL_EX[lw.replace(/[^a-z']/g, '')];
+  if (ex) { const out = []; let p = 0; ex.forEach((x, k) => { const n = k === ex.length - 1 ? w.length - p : x.length; out.push(w.slice(p, p + n)); p += n; }); return out; }
+  const isV = (c, i) => 'aeiou'.includes(c) || (c === 'y' && i > 0);
+  const g = []; for (let i = 0; i < lw.length; i++) { if (isV(lw[i], i)) { const s = i; while (i + 1 < lw.length && isV(lw[i + 1], i + 1)) i++; g.push([s, i]); } }
+  if (g.length > 1) { const last = g[g.length - 1], end = lw.replace(/[^a-z]+$/, '');   // silent e: "home", "time" (but keep "-le": "little")
+    if (last[0] === last[1] && lw[last[0]] === 'e' && (last[0] === end.length - 1 || (last[0] === end.length - 2 && 'sd'.includes(end[end.length - 1]) && !/[td]e[sd]$/.test(end))) && !/[^aeiou]le$/.test(end)) g.pop(); }
+  if (g.length <= 1) return [w];
+  const cuts = []; for (let k = 0; k < g.length - 1; k++) { const e = g[k][1] + 1, s = g[k + 1][0], c = s - e; cuts.push(c <= 1 ? e : e + Math.floor(c / 2)); }
+  if (/[^aeiouy]ing$/.test(lw) && g.length > 1) cuts[cuts.length - 1] = lw.length - 3;
+  const out = []; let p = 0; for (const c of cuts) { out.push(w.slice(p, c)); p = c; } out.push(w.slice(p)); return out.filter(Boolean);
+}
+function syllables(text) { const out = []; (text || '').split(/\s+/).filter(Boolean).forEach(w => sylWord(w).forEach((s, i) => out.push({s, first: i === 0}))); return out; }
+const sylCount = t => syllables(t).length;
+
+/* ---------- humming -> notes ---------- */
+const median = a => { const s = a.slice().sort((x, y) => x - y); return s[s.length >> 1]; };
+function segment(F) {   // F: [{t, dt, m|null}] -> [{m, d, r}]
+  const raw = []; let cur = null, gap = 0;
+  const close = () => { if (cur && cur.t1 - cur.t0 >= 0.09) raw.push(cur); cur = null; };
+  for (const f of F) {
+    if (f.m == null) { if (cur) { gap += f.dt; if (gap > 0.05) close(); } continue; }
+    if (!cur) { cur = {ms: [f.m], t0: f.t, t1: f.t + f.dt, split: gap <= 0.05 && raw.length && raw[raw.length - 1].t1 > f.t - 0.06}; gap = 0; continue; }
+    gap = 0; const med = median(cur.ms.slice(-8));
+    if (Math.abs(f.m - med) > 0.75) { (cur.dev = cur.dev || []).push(f);
+      if (cur.dev.length >= 4) { const dev = cur.dev; cur.dev = null; close(); cur = {ms: dev.map(x => x.m), t0: dev[0].t, t1: f.t + f.dt, split: true}; } }
+    else { if (cur.dev) { cur.dev.forEach(x => cur.ms.push(x.m)); cur.dev = null; } cur.ms.push(f.m); cur.t1 = f.t + f.dt; }
+  }
+  close(); if (!raw.length) return [];
+  raw.forEach(n => n.p = median(n.ms));
+  const off = median(raw.map(n => n.p - Math.round(n.p)));   // you may sing a touch flat or sharp throughout; that's fine
+  const notes = [];
+  raw.forEach((n, i) => { const m = Math.round(n.p - off), prev = notes[notes.length - 1], r = i ? Math.max(0, n.t0 - raw[i - 1].t1) : 0;
+    if (prev && prev.m === m && n.split && r < 0.03) { prev.d += r + (n.t1 - n.t0); return; }
+    notes.push({m, d: +(n.t1 - n.t0).toFixed(3), r: +Math.min(r, 1.2).toFixed(3)}); });
+  return notes;
+}
+
+/* ---------- key, snapping, melody answers ---------- */
+const MAJ = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88], MIN = [6.33, 2.68, 3.52, 5.38, 2.6, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+function keyOf(notes) {
+  const h = Array(12).fill(0); notes.forEach(n => h[((n.m % 12) + 12) % 12] += n.d); let best = {s: -1e9, t: 0, minor: false};
+  for (let t = 0; t < 12; t++) for (const [P, minor] of [[MAJ, false], [MIN, true]]) { let s = 0; for (let k = 0; k < 12; k++) s += h[(t + k) % 12] * P[k]; if (s > best.s) best = {s, t, minor}; }
+  return best;
+}
+const scaleOf = k => (k.minor ? [0, 2, 3, 5, 7, 8, 10] : [0, 2, 4, 5, 7, 9, 11]).map(x => (x + k.t) % 12);
+const keyName = k => ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'][k.t] + (k.minor ? ' minor' : ' major');
+function songNotes() { return song().lines.flatMap(l => l.notes); }
+function snapLine(l) { const sc = scaleOf(keyOf(songNotes().length ? songNotes() : l.notes)); let moved = 0;
+  l.notes.forEach(n => { if (!sc.includes(((n.m % 12) + 12) % 12)) { n.m += sc.includes((((n.m - 1) % 12) + 12) % 12) ? -1 : 1; moved++; } }); return moved; }
+function answerMelody(prev, count) {   // a reply phrase: borrow the last line's rhythm, move in the key, land on home
+  const all = songNotes(), k = all.length ? keyOf(all) : {t: root() % 12, minor: false}, sc = scaleOf(k);
+  const rhythm = prev && prev.notes.length ? prev.notes : [{d: 0.4, r: 0.05}];
+  const deg = m => { let best = 0, bd = 99; for (let o = -24; o <= 24; o++) { const c = m + o; if (sc.includes(((c % 12) + 12) % 12) && Math.abs(o) < bd) { bd = Math.abs(o); best = c; } } return best; };
+  const stepIn = (m, s) => { let c = m, n = Math.abs(s); while (n > 0) { c += Math.sign(s); if (sc.includes(((c % 12) + 12) % 12)) n--; } return c; };
+  let m = deg(prev && prev.notes.length ? prev.notes[0].m : root() + 4); const out = [], src = prev && prev.notes.length ? prev.notes : null;
+  for (let i = 0; i < count; i++) {
+    const rh = rhythm[i % rhythm.length];
+    if (i === count - 1) { let home = m; for (let o = -6; o <= 6; o++) if (((m + o) % 12 + 12) % 12 === k.t && Math.abs(o) < Math.abs(home - m || 99)) home = m + o; m = home; }
+    else if (i > 0) { const mv = src && i < src.length ? -(src[i].m - src[i - 1].m) : 0; m = stepIn(m, clamp(Math.round(mv / 2) || (R() < 0.5 ? 1 : -1), -3, 3)); }
+    out.push({m, d: i === count - 1 ? Math.max(0.7, rh.d) : rh.d, r: i ? rh.r : 0});
+  }
+  return out;
+}
+
+/* ---------- built-in lyric helper (used when Claude isn't available) ---------- */
+const RHYMES = {   // endings that can follow any "who + what" lead: "we keep dancing | all night long"
+  ight: ['tonight', 'every night', 'through the night', 'in the light', 'out of sight', 'with all my might', 'in the moonlight'],
+  ay: ['far away', 'every day', 'all the way', 'yesterday', 'anyway', 'come what may', 'night and day'],
+  ain: ['in the rain', 'once again', 'through the pain', 'on the train', 'down memory lane'],
+  one: ['on my own', 'all alone', 'by the phone', 'into the unknown', 'far from home'],
+  art: ['from the start', 'in my heart', 'worlds apart', 'with all my heart'],
+  ee: ['next to me', 'by the sea', 'wild and free', 'endlessly', 'for all to see'],
+  ound: ['all around', 'safe and sound', 'underground', 'on the ground', 'without a sound'],
+  ong: ['all along', 'all night long', 'where we belong', 'in this song'],
+  ue: ['here with you', 'into the blue', 'all night through', 'back to you', 'just us two'],
+  ire: ['like a fire', 'ever higher', 'on the wire', 'with desire']};
+const LEADS = {
+  Love: ['I hold you', 'we were dancing', 'I fell for you', 'stay with me', 'you and I could run', "I'm still thinking of you", 'kiss me', "I'm yours", 'we could stay like this', 'you light me up', 'I need you', 'hold me close', 'call me', 'come home', 'dance with me', 'just us'],
+  Heartbreak: ["I'm still waiting", 'you walked out', 'I keep crying', 'I let you go', 'your ghost is dancing', 'the phone stays quiet', "I'm missing you", 'I still hear your voice', 'we fell apart', "you're gone", 'I broke', 'so cold', "don't call"],
+  Hope: ['we will make it', 'keep on going', 'I can feel it', 'the sun is rising', 'hold your head up', "we're still standing", 'I believe', "it's getting better", 'we rise', 'look up', 'hold on'],
+  Freedom: ["I'm running", 'we keep driving', 'nothing holds me', "I'm breaking loose", 'we fly', 'I spread my wings', 'the road is calling', "I'm free", 'let go', 'break out'],
+  Party: ['we keep dancing', 'turn it up', 'hands up', "we're going wild", 'the bass is pumping', 'come on', 'we party', 'feel the beat', 'jump up', 'go wild'],
+  'Night drive': ['we keep driving', "the city's glowing", 'headlights shining', "the radio's playing", 'windows down', 'we ride', 'streetlights flicker', 'drive on', 'stay up']};
+const FRONT = ['oh', 'so', 'and', 'yeah', 'now'];
+function lastWordFamily(text) { const w = (text || '').trim().toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).pop() || ''; if (!w) return null;
+  for (const f in RHYMES) if (RHYMES[f].some(e => e.split(' ').pop() === w)) return f;
+  const ends = {ight: /(ight|ite)$/, ay: /(ay|ey|eigh)$/, ain: /(ain|ane|en)$/, one: /(one|own|oan|ome)$/, art: /(art|eart)$/, ee: /(ee|ea|ey|e|y)$/, ound: /ound$/, ong: /ong$/, ue: /(ue|oo|ew|ou|o)$/, ire: /(ire|yre|ier)$/};
+  for (const f in ends) if (ends[f].test(w)) return f; return null; }
+function offlineLine(n, mood, fam, avoid) {
+  const lastW = x => x.toLowerCase().replace(/[^a-z\s']/g, '').trim().split(/\s+/).pop();
+  const leads = (LEADS[mood] || LEADS.Love).slice().sort(() => R() - 0.5), ends = (fam ? RHYMES[fam] : Object.values(RHYMES).flat()).filter(e => !(avoid && avoid.has(lastW(e)))).sort(() => R() - 0.5);
+  if (n <= 3) { const e = ends.find(x => sylCount(x) === n) || leads.find(x => sylCount(x) === n); if (e) return e.replace(/^./, c => c.toUpperCase()); }
+  for (const end of ends) { const left = n - sylCount(end); if (left < 1) continue;
+    let parts = [], need = left;
+    for (const l of leads) { const c = sylCount(l); if (c <= need && (parts.length === 0 || need - c <= 2)) { parts.push(l); need -= c; } if (parts.length && need <= 2) break; }
+    if (need > 2 || (!parts.length && left > 2)) continue;
+    const front = []; while (need-- > 0) front.push(rnd(FRONT.filter(f => !front.includes(f))));
+    const line = front.map(f => f + (/^(oh|yeah)$/.test(f) ? ',' : '') + ' ').join('') + (parts.length ? parts.join(', ') + ' ' : '') + end; return line.replace(/^./, c => c.toUpperCase()); }
+  return Array(n).fill('la').join(' ');
+}
+function stressOf(l) { const md = median(l.notes.map(n => n.d)); return l.notes.map((n, i) => n.d > md * 1.15 || (i && n.m > l.notes[i - 1].m + 2) ? 'DUM' : 'da').join(' '); }
+
+async function askLyrics(kind, li) {
+  const s = song(), l = s.lines[li], prevText = s.lines.slice(0, kind === 'next' ? s.lines.length : li).map(x => x.text).filter(Boolean);
+  const n = kind === 'next' ? (s.lines.length ? s.lines[s.lines.length - 1].notes.length : 8) : l.notes.length;
+  const rhymeWith = kind === 'next' ? (s.lines.length % 2 === 1 ? (s.lines[s.lines.length - 1] || {}).text : '') : (li % 2 === 1 ? (s.lines[li - 1] || {}).text : '');
+  if (AI) {
+    const prompt = `You are a warm, skilled songwriting coach helping a singer write lyrics to a melody they hummed.
+Song title: "${s.title}". Mood: ${s.mood}.
+Lyrics so far (one line each):\n${prevText.length ? prevText.map(t => '  ' + t).join('\n') : '  (none yet)'}
+${kind === 'next' ? `Write 3 different options for the NEXT line of the song.` : `Write 3 different lyric options for line ${li + 1}${l.text ? ` (the singer's current draft is "${l.text}")` : ''}.`}
+The melody for this line has exactly ${n} notes, so each option must have exactly ${n} syllables (one syllable per note).
+${kind === 'line' ? `Stress pattern of the notes (long or leaping notes are stressed): ${stressOf(l)}. Put stressed syllables on DUM.` : 'Keep the rhythm natural to sing.'}
+${rhymeWith ? `End with a word that rhymes with the last word of: "${rhymeWith}".` : ''}
+Be concrete and fresh; avoid clichés unless the mood calls for them. Each option should continue the story.
+Reply with JSON only: {"options":[{"text":"the lyric line","syllables":["each","syl","la","ble"],"why":"a few words on the idea"}]}`;
+    try { const v = await AI.json(prompt, {modelTier: 'default', cache: false}); const o = (v && v.options || []).filter(x => x && x.text).slice(0, 3);
+      if (o.length) return {ai: true, n, opts: o.map(x => ({text: Array.isArray(x.syllables) && x.syllables.length ? joinSyl(x.text, x.syllables) : x.text, why: x.why || ''}))}; }
+    catch (e) { if (e && e.code === 'not_granted') AI = null; }
+  }
+  const fam = rhymeWith ? lastWordFamily(rhymeWith) : null, seen = new Set(), opts = [], avoid = new Set();
+  if (rhymeWith) avoid.add(rhymeWith.toLowerCase().replace(/[^a-z\s']/g, '').trim().split(/\s+/).pop());
+  for (let k = 0; k < 12 && opts.length < 3; k++) { const t = offlineLine(n, s.mood, fam, avoid); if (!seen.has(t)) { seen.add(t); avoid.add(t.toLowerCase().replace(/[^a-z\s']/g, '').trim().split(/\s+/).pop()); opts.push({text: t, why: fam ? 'rhymes with the line before' : ''}); } }
+  return {ai: false, n, opts};
+}
+/* keep Claude's syllable split by writing hyphens into words where our own counter would disagree */
+function joinSyl(text, syl) { const words = text.split(/\s+/).filter(Boolean); let i = 0; const out = [];
+  for (const w of words) { const plain = w.toLowerCase().replace(/[^a-z']/g, ''); let acc = '', parts = [];
+    while (i < syl.length && acc.length < plain.length) { const p = String(syl[i]); parts.push(p); acc += p.toLowerCase().replace(/[^a-z']/g, ''); i++; }
+    out.push(parts.length > 1 && sylWord(w).length !== parts.length ? parts.join('-') : w); }
+  return i === syl.length ? out.join(' ') : text; }
+
+/* ---------- recording ---------- */
+async function recStart(li) {
+  if (SW.rec) return; if (input !== 'mic') { const ok = await enableMic(); if (!ok) { toast('Microphone is off. Use 🎹 Tap notes instead.'); return; } }
+  SW.rec = {li, F: [], t0: performance.now() / 1000, last: performance.now() / 1000, lastV: 0, got: false}; hist.length = 0; listening = true; duck(0); musicTick();
+  openSheet(`<h2 class="res-t" style="margin-bottom:6px">🎤 Hum your melody</h2><div class="tiny" style="text-align:center">Sing "da da da" or any sound, one syllable per note. Stop whenever you like; a long pause stops it too.</div>
+    <canvas class="w-live" id="wLive"></canvas><div class="cue" id="wCue" style="text-align:center">Listening…</div>
+    <button class="btn bad" style="width:100%;margin-top:10px" data-a="wStop">■ Stop</button>`, true);
+  const loop = () => { const r = SW.rec; if (!r) return; const now = performance.now() / 1000, dt = Math.min(0.1, now - r.last), v = sense(now); r.last = now;
+    const m = v.voiced && v.m > 30 && v.m < 90 ? v.m : null; r.F.push({t: now - r.t0, dt, m}); if (m != null) { r.lastV = now; r.got = true; }
+    if (!$('#wLive')) { recStop(); return; }   // sheet was closed
+    drawLive(r); if ((r.got && now - r.lastV > 2.5) || now - r.t0 > 40) { recStop(); return; } requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+function drawLive(r) {
+  const cv = $('#wLive'); if (!cv) return; const b = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+  if (cv.width !== Math.round(b.width * d)) { cv.width = b.width * d; cv.height = b.height * d; }
+  const c = cv.getContext('2d'), W = b.width, H = b.height, span = 6, tEnd = Math.max(span, r.F.length ? r.F[r.F.length - 1].t : 0), vs = r.F.filter(f => f.m != null).map(f => f.m);
+  const mid = vs.length ? median(vs.slice(-60)) : root() + 4, lo = mid - 8, hi = mid + 8, y = m => H - 10 - (clamp(m, lo, hi) - lo) / (hi - lo) * (H - 20);
+  c.setTransform(d, 0, 0, d, 0, 0); c.clearRect(0, 0, W, H);
+  for (let k = Math.ceil(lo); k <= hi; k++) { if (![0, 2, 4, 5, 7, 9, 11].includes(((k % 12) + 12) % 12)) continue; c.fillStyle = '#eef2f5'; c.fillRect(30, y(k), W - 30, 1); c.fillStyle = '#9aa4ae'; c.font = '700 10px Nunito'; c.fillText(pc(k), 4, y(k) + 4); }
+  c.lineWidth = 5; c.lineCap = 'round'; let pen = false; c.beginPath();
+  for (const f of r.F) { if (f.t < tEnd - span) continue; const x = 30 + (f.t - (tEnd - span)) / span * (W - 40); if (f.m == null) { pen = false; continue; } if (!pen) { c.moveTo(x, y(f.m)); pen = true; } else c.lineTo(x, y(f.m)); }
+  c.strokeStyle = vs.length ? col(Math.round(vs[vs.length - 1]), 52) : '#3d8fe6'; c.stroke();
+  const cue = $('#wCue'); if (cue) cue.textContent = vs.length ? 'Hearing ' + pc(Math.round(vs[vs.length - 1])) + '…' : 'Listening…';
+}
+function recStop() {
+  const r = SW.rec; if (!r) return; SW.rec = null; listening = false; duck(1); closeSheet();
+  const notes = segment(r.F); if (!notes.length) { toast("I didn't catch any notes. Try a little louder."); return renderWrite(); }
+  const s = song(); if (r.li == null) { s.lines.push({notes, text: ''}); r.li = s.lines.length - 1; } else s.lines[r.li].notes = notes;
+  saveSongs(); SW.sel = null; renderWrite(); toast('Caught ' + notes.length + ' notes'); setTimeout(() => playLine(r.li), 400);
+}
+
+/* ---------- playback ---------- */
+function playLine(li, t0) {
+  const s = song(), l = s.lines[li], c = actx(); if (!l || !l.notes.length) return t0 || c.currentTime; let t = (t0 || c.currentTime) + 0.08; const tok = SW.playing;
+  l.notes.forEach((n, i) => { t += i ? n.r : 0; tone(n.m, t, Math.max(0.12, n.d * 0.95), 0.2);
+    setTimeout(() => { if (SW.playing !== tok) return; document.querySelectorAll(`.w-roll[data-l="${li}"] .w-n`).forEach((e, k) => e.classList.toggle('on', k === i)); }, Math.max(0, (t - c.currentTime) * 1000));
+    t += n.d; });
+  const end = (t - c.currentTime) * 1000; setTimeout(() => document.querySelectorAll(`.w-roll[data-l="${li}"] .w-n.on`).forEach(e => e.classList.remove('on')), end + 100);
+  return t;
+}
+function playSong() { SW.playing++; let t = actx().currentTime; song().lines.forEach((l, i) => { t = playLine(i, t) + 0.35; }); }
+
+/* ---------- screen ---------- */
+const PX = 100;
+function rollHTML(l, li) {
+  const ns = l.notes, ms = ns.map(n => n.m), lo = Math.min(...ms) - 1, hi = Math.max(lo + 9, Math.max(...ms) + 1), H = 132, syl = syllables(l.text);
+  let x = 10, h = '';
+  ns.forEach((n, i) => { x += i ? n.r * PX : 0; const w = Math.max(26, n.d * PX - 3), top = 8 + (hi - n.m) / (hi - lo) * (H - 34), sel = SW.sel && SW.sel[0] === li && SW.sel[1] === i;
+    const sy = syl[i]; h += `<button class="w-n ${sel ? 'sel' : ''}" data-a="wNote" data-l="${li}" data-i="${i}" style="left:${x}px;top:${top}px;width:${w}px;--nc:${col(n.m, 55)}">${w > 30 ? pc(n.m) : ''}</button>
+      <span class="w-s ${sy ? (sy.first ? '' : 'cont') : 'held'}" style="left:${x}px;max-width:${Math.max(w, 30)}px">${sy ? esc(sy.first ? sy.s : '-' + sy.s) : '~'}</span>`; x += n.d * PX; });
+  const extra = syl.slice(ns.length).map(s => s.s).join(' ');
+  return `<div class="w-scroll"><div class="w-roll" data-l="${li}" style="width:${x + 20}px;height:${H + 30}px">${h}</div></div>` + (extra ? `<div class="tiny" style="color:var(--coral)">Extra syllables with no note: ${esc(extra)}</div>` : '');
+}
+function renderWrite() {
+  if (!SONGS.length) newSong(); SW.cur = Math.min(SW.cur, SONGS.length - 1); const s = song(), k = songNotes().length >= 3 ? keyOf(songNotes()) : null;
+  let h = `<div class="sec"><h3>✍️ Write</h3><span class="tiny">${AI ? '✨ Claude is helping' : 'Built-in idea helper'}</span></div>
+    <div class="card in"><input class="w-title" data-in="title" value="${esc(s.title)}" aria-label="Song title" maxlength="60">
+      <div class="chips" style="margin-top:10px">${MOODS.map(m => `<button class="chip ${s.mood === m ? 'on' : ''}" data-a="wMood" data-v="${m}">${m}</button>`).join('')}</div>
+      <div class="row sp" style="margin-top:12px"><span class="tiny">${s.lines.length} line${s.lines.length === 1 ? '' : 's'}${k ? ' · key of ' + keyName(k) : ''}</span>
+        <span class="row">${s.lines.length ? '<button class="btn sm" data-a="wPlayAll">▶ Play song</button>' : ''}<button class="btn sm" data-a="wSongs">📂 Songs</button></span></div></div>`;
+  s.lines.forEach((l, li) => { const sc = sylCount(l.text), n = l.notes.length, sel = SW.sel && SW.sel[0] === li;
+    h += `<div class="card in w-line" style="--i:${li + 1}"><div class="row sp"><b>Line ${li + 1}</b><span class="tiny" style="color:${!l.text ? 'var(--mute)' : sc === n ? 'var(--brand)' : 'var(--sun-d)'}">${n} notes${l.text ? ' · ' + sc + ' syllables' + (sc === n ? ' ✓' : '') : ''}</span></div>
+      ${n ? rollHTML(l, li) : '<div class="tiny" style="padding:20px 0;text-align:center">No melody yet. Hum one or tap notes.</div>'}
+      ${sel ? `<div class="w-tools"><button class="btn sm" data-a="wEd" data-o="up">▲</button><button class="btn sm" data-a="wEd" data-o="down">▼</button><button class="btn sm" data-a="wEd" data-o="short">◀ Short</button><button class="btn sm" data-a="wEd" data-o="long">Long ▶</button><button class="btn sm" data-a="wEd" data-o="add">＋</button><button class="btn sm" data-a="wEd" data-o="del">🗑</button></div>` : ''}
+      ${SW.keys === li ? kbWrite(li) : ''}
+      <textarea class="w-words" data-in="words" data-l="${li}" rows="2" placeholder="Type words for this line. Use hyphens to split: beau-ti-ful">${esc(l.text)}</textarea>
+      <div class="w-acts"><button class="btn sm" data-a="wPlay" data-l="${li}" ${n ? '' : 'disabled'}>▶ Play</button><button class="btn sm" data-a="wRec" data-l="${li}">🎤 ${n ? 'Re-hum' : 'Hum'}</button><button class="btn sm" data-a="wKeys" data-l="${li}">🎹</button>
+        <button class="btn sm primary" data-a="wSug" data-l="${li}" ${n ? '' : 'disabled'}>✨ Suggest words</button><button class="btn sm" data-a="wMore" data-l="${li}">⋯</button></div></div>`; });
+  h += `<div class="w-add"><button class="btn primary" data-a="wRec">🎤 Hum a new line</button>${s.lines.length ? '<button class="btn" data-a="wNext">✨ What comes next?</button>' : ''}</div>
+    <div class="tiny" style="text-align:center;margin:10px 0 4px">Tip: tap a note to move it, stretch it or delete it. Headphones help the mic hear you clearly.</div>`;
+  $('#view').innerHTML = h;
+}
+function kbWrite(li) { const r = root(), keys = []; for (let o = -5; o <= 14; o++) if ([0, 2, 4, 5, 7, 9, 11].includes(((o % 12) + 12) % 12)) keys.push(r + o);
+  return `<div class="w-kb">${keys.map(m => `<button data-a="wKey" data-l="${li}" data-m="${m}" style="--nc:${col(m, 55)}">${pc(m)}</button>`).join('')}</div><div class="tiny" style="text-align:center;margin-top:4px">Tap keys to add notes to the end of this line</div>`; }
+
+/* ---------- actions ---------- */
+function wEdit(o) { const [li, i] = SW.sel || []; const l = song().lines[li]; if (!l) return; const n = l.notes[i];
+  if (o === 'up') n.m++; if (o === 'down') n.m--; if (o === 'short') n.d = Math.max(0.12, +(n.d * 0.75).toFixed(3)); if (o === 'long') n.d = +(n.d * 1.33).toFixed(3);
+  if (o === 'add') { l.notes.splice(i + 1, 0, {m: n.m, d: n.d, r: 0.05}); SW.sel = [li, i + 1]; }
+  if (o === 'del') { l.notes.splice(i, 1); SW.sel = null; }
+  saveSongs(); renderWrite(); const nn = SW.sel && l.notes[SW.sel[1]]; if (nn) tone(nn.m, actx().currentTime + 0.02, Math.min(0.6, nn.d), 0.2); }
+async function wSuggest(kind, li) {
+  openSheet(`<h2 class="res-t" style="margin-bottom:8px">✨ ${kind === 'next' ? 'What comes next?' : 'Words for line ' + (li + 1)}</h2><div class="c"><div class="cue" style="text-align:center">${AI ? 'Asking Claude…' : 'Thinking up ideas…'}</div></div>`, true);
+  const r = await askLyrics(kind, li); SW.sug = {kind, li, ...r};
+  openSheet(`<h2 class="res-t" style="margin-bottom:4px">✨ ${kind === 'next' ? 'What comes next?' : 'Words for line ' + (li + 1)}</h2>
+    <div class="tiny" style="text-align:center;margin-bottom:10px">${r.n} syllables to fit ${r.n} notes${kind === 'next' ? '. A melody to match is written for you; hum over it if you want your own.' : ''}</div>
+    ${r.opts.map((o, i) => `<button class="w-opt" data-a="wUse" data-i="${i}"><b>${esc(o.text)}</b><span class="tiny">${sylCount(o.text)} syllables${o.why ? ' · ' + esc(o.why) : ''}</span></button>`).join('')}
+    <div class="row" style="margin-top:10px"><button class="btn" data-a="wSugAgain">↻ More ideas</button><button class="btn" data-a="done">Close</button></div>
+    ${r.ai ? '' : '<div class="tiny" style="text-align:center;margin-top:10px">These come from the built-in helper. Open Vocal Quest inside Claude for smarter, story-aware lyrics.</div>'}`, true);
+}
+function wUse(i) { const g = SW.sug, o = g && g.opts[i]; if (!o) return; const s = song();
+  if (g.kind === 'next') { const prev = s.lines[s.lines.length - 1], n = sylCount(o.text); s.lines.push({notes: answerMelody(prev, n), text: o.text}); saveSongs(); closeSheet(); renderWrite(); playLine(s.lines.length - 1); window.scrollTo(0, document.body.scrollHeight); }
+  else { s.lines[g.li].text = o.text; saveSongs(); closeSheet(); renderWrite(); playLine(g.li); } }
+function wSongsSheet() {
+  openSheet(`<h2 class="res-t" style="margin-bottom:10px">📂 My songs</h2>${SONGS.map((s, i) => `<button class="w-opt ${i === SW.cur ? 'cur' : ''}" data-a="wPick" data-i="${i}"><b>${esc(s.title)}</b><span class="tiny">${s.lines.length} lines · ${s.mood}</span></button>`).join('')}
+    <div class="row" style="margin-top:10px"><button class="btn primary" data-a="wNew">＋ New song</button><button class="btn" data-a="done">Close</button></div>`, true); }
+function wMoreSheet(li) { const l = song().lines[li];
+  openSheet(`<h2 class="res-t" style="margin-bottom:10px">Line ${li + 1}</h2>
+    <button class="w-opt" data-a="wSnap" data-l="${li}" ${l.notes.length ? '' : 'disabled'}><b>🎯 Snap to key</b><span class="tiny">Move any off-key notes onto the song's scale</span></button>
+    <button class="w-opt" data-a="wDup" data-l="${li}"><b>⧉ Copy this line</b><span class="tiny">Great for a chorus or a repeated hook</span></button>
+    ${li ? `<button class="w-opt" data-a="wMove" data-l="${li}"><b>⬆ Move up</b></button>` : ''}
+    <button class="w-opt" data-a="wClear" data-l="${li}"><b>🧹 Clear the notes</b></button>
+    <button class="w-opt" data-a="wDelLine" data-l="${li}" style="color:var(--coral)"><b>🗑 Delete line</b></button>
+    <button class="btn" style="width:100%;margin-top:6px" data-a="done">Close</button>`, true); }
+const WA = {
+  wMood: d => { song().mood = d.v; saveSongs(); renderWrite(); },
+  wSongs: () => wSongsSheet(), wNew: () => { newSong(); closeSheet(); renderWrite(); },
+  wPick: d => { SW.cur = +d.i; SW.sel = null; SW.keys = false; closeSheet(); renderWrite(); },
+  wRec: d => recStart(d.l == null ? null : +d.l), wStop: () => recStop(),
+  wPlay: d => { SW.playing++; playLine(+d.l); }, wPlayAll: () => playSong(),
+  wNote: d => { const li = +d.l, i = +d.i, same = SW.sel && SW.sel[0] === li && SW.sel[1] === i; SW.sel = same ? null : [li, i]; renderWrite(); const n = song().lines[li].notes[i]; tone(n.m, actx().currentTime + 0.02, Math.min(0.6, n.d), 0.2); },
+  wEd: d => wEdit(d.o),
+  wKeys: d => { SW.keys = SW.keys === +d.l ? false : +d.l; renderWrite(); },
+  wKey: d => { const l = song().lines[+d.l], m = +d.m; l.notes.push({m, d: 0.4, r: l.notes.length ? 0.05 : 0}); tone(m, actx().currentTime + 0.02, 0.4, 0.2); saveSongs(); renderWrite(); },
+  wSug: d => wSuggest('line', +d.l), wNext: () => wSuggest('next'), wSugAgain: () => wSuggest(SW.sug.kind, SW.sug.li), wUse: d => wUse(+d.i),
+  wMore: d => wMoreSheet(+d.l),
+  wSnap: d => { const n = snapLine(song().lines[+d.l]); saveSongs(); closeSheet(); renderWrite(); toast(n ? 'Moved ' + n + ' note' + (n > 1 ? 's' : '') + ' into the key' : 'Already in key'); playLine(+d.l); },
+  wDup: d => { const l = song().lines[+d.l]; song().lines.splice(+d.l + 1, 0, JSON.parse(JSON.stringify(l))); saveSongs(); closeSheet(); renderWrite(); },
+  wMove: d => { const L = song().lines, i = +d.l; [L[i - 1], L[i]] = [L[i], L[i - 1]]; saveSongs(); closeSheet(); renderWrite(); },
+  wClear: d => { song().lines[+d.l].notes = []; SW.sel = null; saveSongs(); closeSheet(); renderWrite(); },
+  wDelLine: d => { song().lines.splice(+d.l, 1); SW.sel = null; SW.keys = false; saveSongs(); closeSheet(); renderWrite(); }
+};
+document.addEventListener('input', e => { const t = e.target; if (!t.dataset || !t.dataset.in || tab !== 'write') return; const s = song();
+  if (t.dataset.in === 'title') { s.title = t.value || 'Untitled song'; saveSongs(); }
+  if (t.dataset.in === 'words') { const li = +t.dataset.l; s.lines[li].text = t.value; saveSongs();   // refresh syllables under the notes without losing the cursor
+    const card = t.closest('.w-line'), roll = card.querySelector('.w-scroll'); if (roll) { const tmp = document.createElement('div'); tmp.innerHTML = rollHTML(s.lines[li], li); const old = card.querySelector('.w-scroll + .tiny'); if (old) old.remove(); roll.replaceWith(...tmp.childNodes); }
+    const sc = sylCount(t.value), n = s.lines[li].notes.length, info = card.querySelector('.row.sp .tiny'); if (info) { info.textContent = n + ' notes' + (t.value ? ' · ' + sc + ' syllables' + (sc === n ? ' ✓' : '') : ''); info.style.color = !t.value ? 'var(--mute)' : sc === n ? 'var(--brand)' : 'var(--sun-d)'; } }
+});
+
 const MAKE = {blind: Blind, glide: Glide, echo: Echo, flame: Flame, mirror: Mirror};
 let pend = null;
 function chestSheet(it, gold, tea) { pend = {it, gold, tea}; openSheet(`<h2 class="res-t">A gift!</h2><button class="chest" data-a="pop" aria-label="Open">🎁</button><div class="tiny c">Tap it to open</div>`, true); }
@@ -1579,7 +1882,8 @@ const A = {
   introMic: async () => { await enableMic(); S.seen = true; save(); $('#intro').classList.add('hidden'); show(); },
   introDemo: () => { input = 'demo'; S.seen = true; save(); $('#intro').classList.add('hidden'); show(); toast('Touch mode: drag on the meter to sing. Listening lessons work without a mic.'); }
 };
-const QUIET = {inst: 1, pause: 1, resume: 1, tea: 1, again: 1, ref: 1, voice: 1, pop: 1, stat: 1, equip: 1, sell: 1, claim: 1, buyTea: 1, qplay: 1, qans: 1, pad: 1, parry: 1, lsAns: 1, lsNext: 1, vfDone: 1, lsHear: 1, kbKey: 1, lsCheck: 1, lsPlayChord: 1, bossHear: 1, lsSkip: 1};
+Object.assign(A, WA);
+const QUIET = {wNote: 1, wKey: 1, wPlay: 1, wPlayAll: 1, wRec: 1, wStop: 1, wEd: 1, wUse: 1, inst: 1, pause: 1, resume: 1, tea: 1, again: 1, ref: 1, voice: 1, pop: 1, stat: 1, equip: 1, sell: 1, claim: 1, buyTea: 1, qplay: 1, qans: 1, pad: 1, parry: 1, lsAns: 1, lsNext: 1, vfDone: 1, lsHear: 1, kbKey: 1, lsCheck: 1, lsPlayChord: 1, bossHear: 1, lsSkip: 1};
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el || el.disabled) return; const a = el.dataset.a, fn = A[a]; if (!fn) return;
   if (!QUIET[a] && !G && !listening) sfx('tap');
