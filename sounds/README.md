@@ -28,12 +28,17 @@ Anything you leave out keeps its built-in sound. Keep clips short.
 | `equip` | gear equipped, stat point spent, tea drunk |
 | `gate` | a Sky Glide gate is passed (muted while you sing) |
 | `crash` | a Sky Glide gate is hit (muted while you sing) |
+| `menu` | the theme loop on menus; it fades out whenever a note plays or the game is listening |
 
-## Guide instruments
+## Guide sounds
 
-`inst/samples.json` lists the note samples behind the Piano, Cello, Choir and
-Guitar guide instruments (Hero tab → Guide instrument). Each entry gives the
-file and its measured pitch as a MIDI number (60 = middle C, decimals are
-fractions of a semitone). The game plays the sample nearest each note and
-retunes it to the exact pitch, so samples don't need to be perfectly in tune.
-All of these sounds were generated with Suno.
+The note you copy in lessons and games is the **guide**, chosen under Hero → Guide sound:
+
+- **Voice** (default): a built-in sung "ah" tone, easiest to match.
+- **Flute**: a pure built-in tone.
+- **Piano** and **Cello**: Suno samples listed in `inst/samples.json`. Each entry gives the
+  file and its measured pitch as a MIDI number (60 = middle C). The game plays the nearest
+  sample and retunes it to the exact pitch. The cello samples stop at G3, so its high notes
+  sound an octave lower (still the same note name).
+
+All files in this folder were generated with Suno.
