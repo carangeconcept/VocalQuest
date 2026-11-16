@@ -764,19 +764,27 @@ const VF = {on: false, ms: [], t0: 0};
 function vfType(m) { let best = 'tenor'; for (const k in VOICES) if (Math.abs(VOICES[k].root - m) < Math.abs(VOICES[best].root - m)) best = k; return best; }
 async function voiceFind(where) {
   if (input !== 'mic') { const ok = await enableMic(); if (!ok) { voiceFindUI(where, 'nomic'); return; } }
-  VF.on = true; VF.ms = []; VF.t0 = performance.now() / 1000; VF.where = where; hist.length = 0; voiceFindUI(where, 'listen');
-  const loop = () => { if (!VF.on) return; const now = performance.now() / 1000, v = sense(now); if (v.voiced && v.m > 30 && v.m < 84) VF.ms.push(v.m);
-    const e = $('#vfMeter'); if (e) e.style.width = Math.min(100, VF.ms.length / 150 * 100) + '%';
-    if (VF.ms.length >= 150 || now - VF.t0 > 14) { VF.on = false; voiceFindDone(); return; } requestAnimationFrame(loop); };
+  VF.on = true; VF.ms = []; VF.t0 = performance.now() / 1000; VF.where = where; VF.voiced = 0; VF.lastV = 0; hist.length = 0; voiceFindUI(where, 'listen');
+  // keep listening until you've talked for a while AND then gone quiet, so the whole sentence gets heard
+  let last = VF.t0;
+  const loop = () => { if (!VF.on) return; const now = performance.now() / 1000, dt = Math.min(0.1, now - last), v = sense(now); last = now;
+    if (v.voiced && v.m > 30 && v.m < 84) { VF.ms.push(v.m); VF.voiced += dt; VF.lastV = now; }
+    const e = $('#vfMeter'); if (e) e.style.width = Math.min(92, VF.voiced / VF_NEED * 92) + '%';
+    const b = $('#vfDone'); if (b) b.disabled = VF.ms.length < 40;
+    const finished = VF.voiced >= VF_NEED && now - VF.lastV > 1.6;   // a pause after enough talking = done
+    if (finished || now - VF.t0 > 25) { vfStop(); return; } requestAnimationFrame(loop); };
   requestAnimationFrame(loop);
 }
+const VF_NEED = 3;   // seconds of actual voice to collect before a pause can end it
+function vfStop() { if (!VF.on) return; VF.on = false; const e = $('#vfMeter'); if (e) e.style.width = '100%'; setTimeout(voiceFindDone, 250); }
 function voiceFindDone() {
   if (VF.ms.length < 40) { voiceFindUI(VF.where, 'quiet'); return; }
   const s2 = VF.ms.slice().sort((a, b) => a - b), med = s2[s2.length >> 1]; VF.pick = vfType(med); VF.med = med; voiceFindUI(VF.where, 'done');
 }
 function voiceFindUI(where, st) {
   const chips = `<div class="chips" style="justify-content:center;margin-top:10px">${Object.keys(VOICES).map(k => `<button class="chip ${S.voice === k ? 'on' : ''}" data-a="voice" data-v="${k}">${VOICES[k].n}</button>`).join('')}</div>`;
-  const body = st === 'listen' ? `<p class="vsay">“Hi Echo. This is my voice, and I'm ready to sing.”</p><div class="tiny">Say it a couple of times in your normal voice, or hum any note that feels easy.</div><div class="vmeter"><i id="vfMeter"></i></div>`
+  const body = st === 'listen' ? `<p class="vsay">“Hi Echo. This is my voice, and I'm ready to sing.”</p><div class="tiny">Read it out loud in your normal voice, or hum a note that feels easy. Take your time: I'll wait until you stop.</div><div class="vmeter"><i id="vfMeter"></i></div>
+       <button class="btn sm" id="vfDone" data-a="vfDone" style="margin-top:12px" disabled>I'm done</button>`
     : st === 'done' ? `<div class="tiny">Your voice sits around ${noteName(VF.med)}. That sounds like a</div><div class="vres">${VOICES[VF.pick].n}</div><div class="tiny">Voice types are a starting point, not a box. You can change it any time on the Hero tab.</div>
        <div class="row" style="margin-top:14px"><button class="btn" data-a="vfAgain" data-w="${where}">Try again</button><button class="btn primary" data-a="vfOk" data-w="${where}">Sounds right</button></div>`
     : st === 'quiet' ? `<p class="vsay">I couldn't hear enough.</p><div class="tiny">Move a little closer to the microphone and talk or hum for a few seconds.</div><div class="row" style="margin-top:14px"><button class="btn primary" data-a="vfAgain" data-w="${where}">Try again</button></div>`
@@ -1472,6 +1480,7 @@ const A = {
   tab: d => { tab = d.t; wantScroll = true; window.scrollTo(0, 0); show(); },
   lesson: d => openLesson(+d.i),
   lsQuit: () => closeLesson(),
+  vfDone: () => vfStop(),
   lsNext: () => { const L = LS; if (!L || !L.st.done) return; L.i++; if (L.i >= L.steps.length) lessonDone(); else renderStep(); },
   lsSkip: () => { const L = LS; if (!L || L.st.done) return; cancelAnimationFrame(lsRaf); listening = false; duck(1); stepResult(false, 'Skipped. Come back and sing it later.'); },
   lsHear: () => { const L = LS; if (!L) return; const s = L.steps[L.i]; if ((s.t === 'sing' || s.t === 'seq') && !L.st.done) startListen(false); else hearStep(); },
@@ -1529,7 +1538,7 @@ const A = {
   introMic: async () => { await enableMic(); S.seen = true; save(); $('#intro').classList.add('hidden'); show(); },
   introDemo: () => { input = 'demo'; S.seen = true; save(); $('#intro').classList.add('hidden'); show(); toast('Touch mode: drag on the meter to sing. Listening lessons work without a mic.'); }
 };
-const QUIET = {inst: 1, pause: 1, resume: 1, tea: 1, again: 1, ref: 1, voice: 1, pop: 1, stat: 1, equip: 1, sell: 1, claim: 1, buyTea: 1, qplay: 1, qans: 1, pad: 1, parry: 1, lsAns: 1, lsNext: 1, lsHear: 1, kbKey: 1, lsCheck: 1, lsPlayChord: 1, bossHear: 1, lsSkip: 1};
+const QUIET = {inst: 1, pause: 1, resume: 1, tea: 1, again: 1, ref: 1, voice: 1, pop: 1, stat: 1, equip: 1, sell: 1, claim: 1, buyTea: 1, qplay: 1, qans: 1, pad: 1, parry: 1, lsAns: 1, lsNext: 1, vfDone: 1, lsHear: 1, kbKey: 1, lsCheck: 1, lsPlayChord: 1, bossHear: 1, lsSkip: 1};
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el || el.disabled) return; const a = el.dataset.a, fn = A[a]; if (!fn) return;
   if (!QUIET[a] && !G && !listening) sfx('tap');
