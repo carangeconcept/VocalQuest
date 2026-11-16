@@ -168,6 +168,51 @@ img.spr{display:block}
 
 /* Ear duels (tap games) */
 #quiz{z-index:21}
+#studio{z-index:19;overflow:hidden}
+#studio .st-top input{flex:1;min-width:0;background:none;border:0;border-bottom:2px dashed var(--line);color:var(--bone);font:400 20px var(--display);text-transform:uppercase;padding:2px 0}
+#studio .st-top input:focus{outline:none;border-bottom-color:var(--rust)}
+.sw-body{flex:1;overflow:auto;padding:14px 16px 20px;display:flex;flex-direction:column;gap:14px}
+.sw-body>*{flex-shrink:0}
+.sw-foot{display:flex;gap:10px;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:3px solid #000;background:var(--soot)}
+.sw-lab{font-weight:800;font-size:12px;letter-spacing:.14em;color:var(--ash);display:flex;justify-content:space-between;gap:8px}
+.sw-in{width:100%;background:#0f0d0c;border:2px solid var(--line);color:var(--bone);font:700 19px var(--body);padding:10px 12px}
+.sw-in:focus{outline:none;border-color:var(--rust)}
+.syls{display:flex;flex-wrap:wrap;gap:5px;min-height:30px}
+.syls span{background:var(--nc,#2b2723);color:#000;border:2px solid #000;padding:1px 7px;font-weight:800;font-size:15px}
+.syls span.x{background:#2b2723;color:var(--ash);border-style:dashed}
+.syls span.hl{outline:3px solid var(--bone);transform:translateY(-3px)}
+.syls span.hold{background:transparent;color:var(--ash);border-style:dotted}
+.melwrap{overflow-x:auto;background:#0f0d0c;border:2px solid #000;touch-action:pan-x}
+.melwrap canvas{display:block;height:260px}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.tools .chip.rec{background:var(--blood);color:#fff;border-color:#000;animation:flick .9s infinite}
+.keys{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.keys button{min-height:48px;background:var(--nc);border:2px solid #000;box-shadow:3px 3px 0 #000;font:400 18px var(--display);color:#000}
+.coach{display:flex;flex-direction:column;gap:6px}
+.coach div{display:flex;gap:10px;align-items:baseline;font-size:15px}
+.coach b{flex:none;width:18px;text-align:center}
+.coach .ok b{color:var(--moss)}.coach .warn b{color:var(--mustard)}.coach .info b{color:var(--ash)}
+.secs{display:flex;gap:6px}
+.secs button{flex:1}
+.line{display:flex;gap:10px;align-items:center;width:100%;text-align:left;padding:10px 12px;background:var(--slab);border:2px solid #000;border-left:8px solid var(--lc,var(--line));box-shadow:3px 3px 0 #000;color:var(--bone)}
+.line .lt{flex:1;min-width:0}
+.line .lt b{display:block;font-size:17px}
+.line .lt small{color:var(--ash);font-weight:700;letter-spacing:.04em}
+.song{display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 14px;margin-bottom:10px;background:var(--slab);border:2px solid #000;border-left:10px solid var(--rust);box-shadow:4px 4px 0 #000;color:var(--bone)}
+.song b{font-family:var(--display);font-weight:400;font-size:20px;text-transform:uppercase;display:block}
+.swq{display:flex;gap:12px;align-items:center;padding:9px 0;border-bottom:2px dashed var(--line)}
+.swq:last-child{border:0}
+.swq .ck{width:26px;height:26px;flex:none;border:2px solid var(--line);display:grid;place-items:center;font-weight:900}
+.swq.done .ck{background:var(--moss);border-color:#000;color:#000}
+.swq.done .tt{color:var(--ash);text-decoration:line-through}
+.scroll{border-left:6px solid var(--mustard);background:#0f0d0c;padding:10px 12px;margin:10px 0}
+.scroll b{display:block;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.scroll.lock{border-left-color:var(--line);color:var(--ash)}
+.vmeter{height:14px;background:#000;border:2px solid #000;margin:12px auto;max-width:300px}
+.vmeter i{display:block;height:100%;width:0;background:repeating-linear-gradient(115deg,var(--rust) 0 7px,#a23417 7px 11px);transition:width .15s}
+.vsay{font-size:20px;font-weight:700;margin:6px 0 0;color:var(--bone)}
+.vres{font-family:var(--display);font-size:44px;color:var(--mustard);text-shadow:4px 4px 0 #000;margin:4px 0;animation:stamp .35s both}
+
 .q-lives{font-size:20px;letter-spacing:3px;color:#e0463a}
 .q-lives s{text-decoration:none;color:var(--line)}
 .q-body{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:14px 18px;text-align:center}
@@ -216,6 +261,7 @@ img.spr{display:block}
   <div class="st-mid"><canvas id="cv"></canvas><div id="parry" class="hidden"></div></div>
   <div class="st-bot" id="stHint"></div>
 </div>
+<div id="studio" class="overlay hidden"></div>
 <div id="quiz" class="overlay hidden"></div>
 <div id="intro" class="overlay hidden"></div>
 <div id="scrim" class="scrim hidden"><div id="sheet" class="sheet"></div></div>
@@ -300,17 +346,17 @@ const TITLES = ['Squeaky Novice','Shower Singer','Apprentice Bard','Tuned Drifte
 const STAGES = ['Ember','Wraith','Horned Wraith','Revenant'];
 const STAT = {
   pow:{n:'Power',t:'POW',adj:'Roaring',d:'+6% spell damage each'},
-  foc:{n:'Focus',t:'FOC',adj:'True',d:'+3¢ pitch forgiveness each'},
+  foc:{n:'Wisdom',t:'WIS',adj:'Wise',d:'+5% XP from everything each'},
   vit:{n:'Vitality',t:'VIT',adj:'Hearty',d:'+12 max HP each, +1 ear-duel life per 3'},
   luck:{n:'Luck',t:'LCK',adj:'Lucky',d:'+5% gold and better loot each'}};
 const RAR = [{n:'Common',c:'#968c7b',v:1,sell:10},{n:'Rare',c:'#6ea3bd',v:2,sell:25},{n:'Epic',c:'#a987d6',v:3,sell:60},{n:'Legendary',c:'#d9a520',v:5,sell:150}];
 const SLOTS = {charm:{n:'Charm',items:[['🔔','Bell'],['📿','Pendant'],['🧿','Amulet']]}, cloak:{n:'Cloak',items:[['🧣','Scarf'],['🧥','Coat'],['👑','Circlet']]}, lute:{n:'Instrument',items:[['🪕','Lute'],['🎻','Fiddle'],['🎺','Horn']]}};
-const DQ = {wins:['Win 2 fights',2], cast:['Cast 15 notes in battle',15], glide:['Pass 12 gates in Sky Glide',12], echo:['Nail 3 echoes in Echo Shrine',3], flame:['Hold a Steady Flame for 20s in total',20], stars3:['Earn a 3-star victory',1], ear:['Get 10 ear answers right',10], parry:['Land 3 parries in battle',3]};
+const DQ = {write:['Save a line in your songbook',1], wins:['Win 2 fights',2], cast:['Cast 15 notes in battle',15], glide:['Pass 12 gates in Sky Glide',12], echo:['Nail 3 echoes in Echo Shrine',3], flame:['Hold a Steady Flame for 20s in total',20], stars3:['Earn a 3-star victory',1], ear:['Get 10 ear answers right',10], parry:['Land 3 parries in battle',3]};
 const xpNeed = l => 60 + 40 * (l - 1);
 
 /* ================= save ================= */
 const KEY = 'vocalquest.v2', BEST0 = {glide:0,echo:0,flame:0,name:0,dir:0,tune:0,simon:0,blind:0};
-let S = {voice:'tenor',lvl:1,xp:0,gold:0,sp:0,stats:{pow:0,foc:0,vit:0,luck:0},gear:{charm:null,cloak:null,lute:null},bag:[],tea:1,stars:{},streak:0,lastDay:'',anyOctave:true,wins:0,best:Object.assign({}, BEST0),daily:null,sfx:true,music:true,inst:'piano',seen:false,nid:1};
+let S = {voice:'tenor',lvl:1,xp:0,gold:0,sp:0,stats:{pow:0,foc:0,vit:0,luck:0},gear:{charm:null,cloak:null,lute:null},bag:[],tea:1,stars:{},streak:0,lastDay:'',anyOctave:true,wins:0,best:Object.assign({}, BEST0),daily:null,sfx:true,music:true,inst:'piano',songs:[],sw:{},seen:false,nid:1};
 try {
   const j = localStorage.getItem(KEY);
   if (j) { const o = JSON.parse(j); S = Object.assign(S, o); S.stats = Object.assign({pow:0,foc:0,vit:0,luck:0}, o.stats); S.best = Object.assign({}, BEST0, o.best); S.gear = Object.assign({charm:null,cloak:null,lute:null}, o.gear); }
@@ -325,7 +371,7 @@ const root = () => VOICES[S.voice].root;
 const lab = m => S.anyOctave ? pc(m) : noteName(m);
 const stage = () => S.lvl >= 10 ? 4 : S.lvl >= 6 ? 3 : S.lvl >= 3 ? 2 : 1;
 const eff = k => { let v = S.stats[k]; for (const s in S.gear) { const it = S.gear[s]; if (it) { if (it.stat === k) v += it.val; if (it.stat2 === k) v += 2; } } return v; };
-const tolFor = z => z.tol + Math.min(20, 3 * eff('foc'));
+const tolFor = z => z.tol;   // pitch judging never gets looser from stats or gear
 const heroMaxHp = () => 100 + 12 * eff('vit');
 const streakNow = () => (S.lastDay === today() || S.lastDay === yday()) ? S.streak : 0;
 const parryPlan = n => n >= 10 ? [Math.floor(n / 3), Math.floor(n * 2 / 3)] : n >= 5 ? [Math.floor(n / 2)] : [];
@@ -337,7 +383,7 @@ function unlocked(zi, qi) {
 function nextOf(zi, qi) { const i = QL.findIndex(e => e.zi === zi && e.qi === qi), n = QL[i + 1]; return n && unlocked(n.zi, n.qi) ? n : null; }
 function buildNotes(z, q) { let t = 3.2; return q.pat.map(o => { const n = {midi: root() + o, start: t, dur: z.beat, hit: 0, done: false, ok: null, errSum: 0, errN: 0}; t += z.beat + 0.3; return n; }); }
 function grant(xp, gold) {
-  gold = Math.round(gold * (1 + 0.05 * eff('luck'))); const st0 = stage(); let ups = 0;
+  gold = Math.round(gold * (1 + 0.05 * eff('luck'))); xp = Math.round(xp * (1 + 0.05 * eff('foc'))); const st0 = stage(); let ups = 0;
   S.xp += xp; S.gold += gold;
   while (S.xp >= xpNeed(S.lvl)) { S.xp -= xpNeed(S.lvl); S.lvl++; S.sp++; ups++; }
   return {xp, gold, ups, evo: stage() > st0};
@@ -560,7 +606,7 @@ function renderHud() {
 function renderTabs() {
   ensureDaily();
   const town = !S.daily.chest || S.daily.q.some(q => !q.done && q.p >= DQ[q.k][1]);
-  const T = [['map','Map',false], ['arcade','Arcade',false], ['hero','Hero',S.sp > 0], ['town','Town',town]];
+  const T = [['map','Map',false], ['arcade','Arcade',false], ['write','Write',false], ['hero','Hero',S.sp > 0], ['town','Town',town]];
   $('#tabs').innerHTML = T.map(x => `<button data-a="tab" data-t="${x[0]}" class="${tab === x[0] ? 'on' : ''}">${x[1]}${x[2] ? '<i class="dot"></i>' : ''}</button>`).join('');
 }
 function starStr(n) { return '★'.repeat(n) + '<s>' + '★'.repeat(3 - n) + '</s>'; }
@@ -613,7 +659,7 @@ function renderHero() {
   for (const sl in SLOTS) { const it = S.gear[sl]; h += it ? `<button class="slot" style="--rc:${RAR[it.rar].c}" data-a="item" data-id="${it.id}">${ico(it.e, 44)}<small>${SLOTS[sl].n}</small></button>` : `<div class="slot"><span style="opacity:.25;font-size:26px">+</span><small>${SLOTS[sl].n}</small></div>`; }
   h += `</div><div class="sec"><span>Bag</span><span class="tiny">${S.bag.length}/24</span></div><div class="bag in" style="--i:3">`;
   for (let i = 0; i < Math.max(12, Math.ceil(S.bag.length / 6) * 6); i++) { const it = S.bag[i]; h += it ? `<button class="cell" style="--rc:${RAR[it.rar].c}" data-a="item" data-id="${it.id}" aria-label="${it.name}">${ico(it.e, 30)}</button>` : `<div class="cell empty"></div>`; }
-  h += `</div><div class="sec"><span>Voice</span></div><div class="slab card in" style="--i:4"><div class="tiny" style="margin-bottom:8px">VOICE TYPE · sets your key (home note ${noteName(root())})</div>
+  h += `</div><div class="sec"><span>Voice</span></div><div class="slab card in" style="--i:4"><div class="row sp" style="margin-bottom:8px"><div class="tiny">VOICE TYPE · sets your key (home note ${noteName(root())})</div><button class="btn sm" data-a="vfStart" data-w="hero">Find my voice</button></div>
     <div class="chips">${Object.keys(VOICES).map(k => `<button class="chip ${S.voice === k ? 'on' : ''}" data-a="voice" data-v="${k}">${VOICES[k].n}</button>`).join('')}</div>
     <div class="row sp" style="margin-top:16px"><div>${inputLabel}<div class="tiny">Headphones give the cleanest pitch reading</div></div><div class="row"><button class="btn sm" data-a="mic">Mic</button><button class="btn sm" data-a="demoMode">Touch</button></div></div>
     <div class="tiny" style="margin:16px 0 8px">GUIDE INSTRUMENT · the notes you sing along to</div>
@@ -636,16 +682,16 @@ function renderTown() {
     <div class="slab">${ico('📜', 54)}<b>The record</b><div class="tiny">${S.wins} foes put down. ${Object.values(S.stars).reduce((a, b) => a + b, 0)} of ${QL.length * 3} stars.</div></div></div>`;
   $('#view').innerHTML = h;
 }
-function show() { renderHud(); renderTabs(); ({map: renderMap, arcade: renderArcade, hero: renderHero, town: renderTown})[tab](); }
+function show() { renderHud(); renderTabs(); ({map: renderMap, arcade: renderArcade, write: renderWrite, hero: renderHero, town: renderTown})[tab](); }
 function renderIntro() {
   $('#intro').innerHTML = `<div class="box"><div class="logo">VOCAL<br>QUEST</div>
     <canvas id="introCv" width="360" height="360"></canvas>
     <p style="margin:0 0 18px">The Hush swallowed every sound in the land. Echo is the last ember of song. Sing, and burn the silence down.</p>
-    <div class="tiny" style="margin-bottom:8px;letter-spacing:.1em">PICK YOUR VOICE · you can change it later</div>
-    <div class="chips" style="justify-content:center;margin-bottom:6px">${Object.keys(VOICES).map(k => `<button class="chip ${S.voice === k ? 'on' : ''}" data-a="voice" data-v="${k}">${VOICES[k].n}</button>`).join('')}</div>
-    <button class="link" data-a="ref" style="padding:8px">Hear your home note. It should feel easy to hum.</button>
-    <div class="row" style="margin-top:12px"><button class="btn primary" data-a="introMic">Start singing</button></div>
-    <button class="link" data-a="introDemo">Play without a microphone</button></div>`;
+    <div id="vfBox"><div class="tiny" style="margin-bottom:8px;letter-spacing:.1em">FIRST, LET'S FIND YOUR VOICE</div>
+      <p style="margin:0 0 14px">Talk or hum for a few seconds. Echo listens and works out whether you're a bass, baritone, tenor, alto, mezzo or soprano.</p>
+      <div class="row"><button class="btn primary" data-a="vfStart" data-w="intro">Find my voice</button></div>
+      <button class="link" data-a="vfManual">I already know my voice type</button>
+      <button class="link" data-a="introDemo" style="padding-top:0">Play without a microphone</button></div></div>`;
   $('#intro').classList.remove('hidden');
 }
 
@@ -671,7 +717,7 @@ function loop(ts) {
   if (!G.paused) { G.T += dt; G.step(dt, sense(ts / 1000)); if (!G) return; stepFx(dt); }
   G.draw(); raf = requestAnimationFrame(loop);
 }
-function closeStage() { cancelAnimationFrame(raf); duck(1); hush(0); G = null; demo.on = false; $('#stage').classList.add('hidden'); $('#parry').classList.add('hidden'); }
+function closeStage() { cancelAnimationFrame(raf); duck(1); hush(!!ST); G = null; demo.on = false; $('#stage').classList.add('hidden'); $('#parry').classList.add('hidden'); }
 function setDemo(e) { const r = cv.getBoundingClientRect(); demo.midi = mOf(e.clientY - r.top); }
 cv.addEventListener('pointerdown', e => { if (input !== 'demo' || !G) return; demo.on = true; setDemo(e); try { cv.setPointerCapture(e.pointerId); } catch (x) {} });
 cv.addEventListener('pointermove', e => { if (demo.on && G) setDemo(e); });
@@ -722,13 +768,13 @@ function drawFx() {
 function beginShake() { g.save(); if (shakeT > 0) g.translate((R() - 0.5) * 44 * shakeT, (R() - 0.5) * 44 * shakeT); }
 
 /* ================= battle: sing the spell, then parry by tapping the note the foe throws back ================= */
-function Battle(zi, qi) {
-  const z = ZONES[zi], q = z.quests[qi], notes = buildNotes(z, q), mids = notes.map(n => n.midi);
+function Battle(zi, qi, cu) {
+  const z = cu ? cu.z : ZONES[zi], q = cu ? cu.q : z.quests[qi], notes = cu ? cu.notes : buildNotes(z, q), mids = notes.map(n => n.midi);
   let lo = Math.min(...mids) - 3, hi = Math.max(...mids) + 3; if (hi - lo < 12) { const e = (12 - (hi - lo)) / 2; lo -= e; hi += e; }
   const maxHp = heroMaxHp(), atk = z.atk + (q.boss ? 4 : 0);
   return {title: q.name + (q.boss ? ' · boss' : ''), zi, qi, z, q, notes, lo, hi, padT: 124, padB: 62, t: 0, tol: tolFor(z), need: 0.55,
     foe: 100, chase: 100, hero: maxHp, heroMax: maxHp, combo: 0, maxCombo: 0, comboPop: 0, hit: 0, att: 0, voicedT: 0, casts: 0, parries: 0,
-    trail: [], cm: null, lastY: null, on: false, shot: 0, foeShake: 0, flash: 0, end: null, lastCount: 4, parry: null, plan: parryPlan(notes.length),
+    trail: [], cm: null, lastY: null, on: false, shot: 0, foeShake: 0, flash: 0, end: null, lastCount: 4, parry: null, plan: cu ? [] : parryPlan(notes.length), cu,
     total: notes.reduce((s, n) => s + n.dur, 0), power: 1 + 0.06 * eff('pow'),
     init() { this.teaBtn(); tone(notes[0].midi, actx().currentTime + 0.5, 1.2, 0.13); },
     teaBtn() { $('#stBtns').innerHTML = S.tea > 0 ? `<button class="pill" data-a="tea">Tea ×${S.tea}</button>` : ''; },
@@ -778,8 +824,8 @@ function Battle(zi, qi) {
       else s = `${lab(ref)} · you are ${cents > 0 ? '+' : ''}${Math.round(cents)}¢ ${Math.abs(cents) <= b.tol ? '✓' : cents < 0 ? '▲ higher' : '▼ lower'}`;
       hint(s);
       const last = notes[notes.length - 1];
-      if (b.foe <= 0) { b.end = {win: true, t: 0}; duck(1); burst(mx, my, BONE, 40, 260); burst(mx, my, RUST, 40, 200); sfx('perfect'); hint('The spell lands.'); }
-      else if (b.hero <= 0 || b.t > last.start + last.dur + 0.4) { b.end = {win: false, t: 0}; hint(b.hero <= 0 ? 'Echo gutters out…' : q.name + ' shrugs off the spell…'); }
+      if (b.foe <= 0 && !b.cu) { b.end = {win: true, t: 0}; duck(1); burst(mx, my, BONE, 40, 260); burst(mx, my, RUST, 40, 200); sfx('perfect'); hint('The spell lands.'); }
+      else if (b.hero <= 0 || b.t > last.start + last.dur + 0.4) { b.end = {win: !!b.cu && b.hit / Math.max(b.att, 0.01) >= 0.6, t: 0}; hint(b.cu ? 'Line sung.' : b.hero <= 0 ? 'Echo gutters out…' : q.name + ' shrugs off the spell…'); }
       else if (b.plan.length && notes[b.plan[0] - 1].done) { b.plan.shift(); b.startParry(); }
     },
     draw() {
@@ -822,6 +868,7 @@ function Battle(zi, qi) {
     }};
 }
 function finishBattle(b, win) {
+  if (b.cu) return finishPractice(b);
   const acc = b.att > 0 ? b.hit / b.att : 0, stars = win ? (acc >= 0.85 ? 3 : acc >= 0.7 ? 2 : 1) : 0;
   prog('cast', b.casts); prog('parry', b.parries); closeStage();
   let tip = '';
@@ -1054,6 +1101,323 @@ function Mirror() {
       if (b.rh >= b.rl) txt('RANGE EXPLORED: ' + noteName(b.rl) + ' TO ' + noteName(b.rh), cx, H - 26, FONT(14), ASH, 'center');
     }};
 }
+/* ================= Songsmith: write songs with what you have trained ================= */
+const MODES = {major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10]};
+const SECS = ['Verse', 'Chorus', 'Bridge'];
+const CONTOURS = {arch: 'Arch', climb: 'Climb', fall: 'Fall', wave: 'Wave'};
+const SW = [ // one-time songwriting quests: id, title, how, xp, gold
+  ['line', 'Write your first line', 'Give a line both words and a melody, then save it.', 60, 30],
+  ['gen', 'Words first', 'Type a lyric, then use Make a melody to get a tune for it.', 60, 30],
+  ['hum', 'Melody first', 'Use Hum it to sing a tune straight in, then fit words to it.', 60, 30],
+  ['perform', 'Sing your own line', 'Use Sing it on a line and land 70% or better.', 90, 40],
+  ['lift', 'Lift the chorus', 'Write a chorus whose melody sits higher than your verse.', 100, 50],
+  ['song', 'Finish a song', 'A verse and a chorus with at least 4 lines each.', 200, 100]];
+const SCROLLS = [
+  ['The home note', () => `Every key has a home. In your songs it is ${pc(root())}, the note you hum first. A line that ends there sounds finished. A line that ends somewhere else pulls the listener into the next line. Use open endings inside a verse and come home at the end of it.`],
+  ['Syllables are notes', () => `The default is one syllable per note, so count them. When a line has too many words, cut the filler (just, really, so) before you add notes. To stretch one syllable over two notes, type ~ after the word. Singers call that a melisma.`],
+  ['Steps and leaps', () => `The Singing Forest drilled steps and the Echo Caves drilled leaps. A line made mostly of steps is easy to sing in tune. One leap makes it memorable. Put that leap on the word that matters most.`],
+  ['Strong words on strong notes', () => `Ears land on long notes, high notes and the start of a phrase. Give those spots to the words that carry meaning, not to the, and, or a. If a small word lands on your highest note, swap the words around.`],
+  ['The chorus lifts', () => `Most choruses sit higher than their verse, often starting near the fifth of the key (${pc(root() + 7)} for you). The jump in register tells the listener that this is the big moment.`],
+  ['Repeat, then twist', () => `Sing the same melody for two lines so it sticks, then change the ending the second time. Repetition is how a hook becomes a hook, and the twist keeps it from going stale.`],
+  ['Breathe at the end', () => `Give the last note of each line extra length. It lets the words land and gives you air for the next line. Steady Flame trained exactly this.`],
+  ['Write inside your range', () => `Your comfortable range runs roughly ${noteName(root() - 3)} to ${noteName(root() + 12)}. Melodies that live there you can sing every night. Save your highest note for the one moment that needs it.`]];
+const swDoneN = () => SW.filter(q => S.sw[q[0]]).length;
+function swDone(id) {
+  if (S.sw[id]) return; S.sw[id] = 1; const q = SW.find(x => x[0] === id), rw = grant(q[3], q[4]); save();
+  setTimeout(() => { sfx('lvl'); toast(`Songsmith: ${q[1]} · +${rw.xp} XP · +${rw.gold}g · new craft scroll`); if (rw.ups) confetti(40); }, 300);
+}
+const ladder = mode => { const o = []; for (let k = -1; k <= 1; k++) for (const v of MODES[mode]) { const x = v + 12 * k; if (x >= -5 && x <= 14) o.push(x); } return o.sort((a, b) => a - b); };
+const snapL = (v, L) => L.reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a, L[0]);
+const beatSec = song => 60 / song.tempo;
+
+/* lyrics → syllables: a dash splits a word by hand, ~ holds the syllable over one more note */
+function sylWord(w) {
+  if (w.includes('-')) return w.split('-').filter(Boolean);
+  const m = w.match(/^([^A-Za-z']*)([A-Za-z']+)([^A-Za-z']*)$/); if (!m) return [w];
+  const core = m[2], lw = core.toLowerCase();
+  if (lw.length <= 3) return [w];
+  const re = /[aeiouy]+/g, gr = []; let x; while ((x = re.exec(lw))) gr.push([x.index, x.index + x[0].length]);
+  if (gr.length > 1) { const lg = gr[gr.length - 1];
+    if (lw.endsWith('e') && lg[0] === lw.length - 1 && !/[^aeiouy]le$/.test(lw)) gr.pop();
+    else if (/[^td]ed$/.test(lw) && lg[0] === lw.length - 2) gr.pop();
+    else if (/[^aeiouysxzh]es$/.test(lw) && lg[0] === lw.length - 2 && !/(c|g|s|z)es$/.test(lw)) gr.pop(); }
+  if (gr.length <= 1) return [w];
+  const cuts = []; for (let i = 1; i < gr.length; i++) { const a = gr[i - 1][1], b = gr[i][0], cl = lw.slice(a, b);
+    cuts.push(b - a <= 1 ? a : /^(ng|ck)/.test(cl) ? a + 2 : /^(th|sh|ch|ph|wh)$/.test(cl) ? a : a + Math.floor((b - a) / 2)); }
+  const parts = []; let st = 0; for (const c of cuts) { parts.push(core.slice(st, c)); st = c; } parts.push(core.slice(st));
+  parts[0] = m[1] + parts[0]; parts[parts.length - 1] += m[3]; return parts;
+}
+function syllables(text) {
+  const out = []; (text || '').trim().split(/\s+/).filter(Boolean).forEach((tok, wi) => {
+    const holds = (tok.match(/~+$/) || [''])[0].length, word = tok.replace(/~+$/, '');
+    if (word) sylWord(word).forEach((t, i) => out.push({t, wi, first: i === 0, hold: false}));
+    for (let i = 0; i < holds; i++) out.push({t: '~', wi, first: false, hold: true});
+  });
+  return out;
+}
+
+/* words first: build a singable melody for a set of syllables */
+function makeMelody(syls, sec, mode, contour, ending) {
+  const L = ladder(mode), n = syls.length; if (!n) return [];
+  const center = L.indexOf(snapL(sec === 'Chorus' ? 7 : sec === 'Bridge' ? 5 : 2, L)), span = sec === 'Chorus' ? 5 : 4;
+  const C = {climb: x => x, fall: x => 1 - x, arch: x => Math.sin(Math.PI * x), wave: x => 0.5 + 0.5 * Math.sin(Math.PI * 3 * x - Math.PI / 2)}[contour];
+  let prev = null; const out = [];
+  syls.forEach((sy, i) => {
+    const x = n === 1 ? 0.5 : i / (n - 1);
+    let t = Math.round(center - span / 2 + C(x) * span + (R() < 0.35 ? (R() < 0.5 ? -1 : 1) : 0));
+    if (prev != null) { t = clamp(t, prev - 2, prev + 2); if (sy.hold && t === prev) t = prev + (R() < 0.5 ? 1 : -1); }
+    t = clamp(t, 0, L.length - 1); prev = t; out.push({o: L[t], l: sy.first || sy.hold ? 1 : 0.5});
+  });
+  const want = ending === 'home' ? [0] : [7, 2], pi = n > 1 ? L.indexOf(out[n - 2].o) : center;
+  let best = -1; L.forEach((v, i) => { if (want.includes(((v % 12) + 12) % 12) && (best < 0 || Math.abs(i - pi) < Math.abs(best - pi))) best = i; });
+  out[n - 1] = {o: L[best], l: 2};
+  if (n > 1 && Math.abs(L.indexOf(out[n - 2].o) - best) > 2) out[n - 2].o = L[clamp(best + (L.indexOf(out[n - 2].o) > best ? 1 : -1), 0, L.length - 1)];
+  return out;
+}
+
+/* melody first: turn a hummed pitch track into notes in the key */
+function segmentHum(frames, song) {
+  const L = ladder(song.mode), r = root(), bs = beatSec(song), raw = []; let cur = null;
+  const close = () => { if (cur && cur.t1 - cur.t0 >= 0.12) { const ms = cur.ms.slice().sort((a, b) => a - b); raw.push({m: ms[ms.length >> 1], d: cur.t1 - cur.t0}); } cur = null; };
+  for (const f of frames) {
+    if (f.m == null) { if (cur && f.t - cur.t1 > 0.09) close(); continue; }
+    if (cur && Math.abs(f.m - cur.ref) > 0.75) close();
+    if (!cur) cur = {t0: f.t, t1: f.t, ms: [], ref: f.m};
+    cur.t1 = f.t; cur.ms.push(f.m); if (cur.ms.length <= 6) { const s2 = cur.ms.slice().sort((a, b) => a - b); cur.ref = s2[s2.length >> 1]; }
+  }
+  close();
+  return raw.map(n => { let off = n.m - r; off -= 12 * Math.round((off - 4.5) / 12); return {o: snapL(clamp(off, -5, 14), L), l: clamp(Math.round(n.d / bs * 2) / 2, 0.5, 4)}; });
+}
+
+/* the coach: plain-language checks on a line, tied to what the game has taught */
+function coach(syls, notes, sec, song) {
+  const out = [], r = root(), ns = syls.length, nn = notes.length;
+  if (!ns && !nn) return [['info', 'Start with words or with a melody. Both work.']];
+  if (ns && nn) out.push(ns === nn ? ['ok', `${ns} syllables, ${nn} notes. Every syllable has a note.`]
+    : ns > nn ? ['warn', `${ns} syllables but ${nn} notes. Add ${ns - nn} note${ns - nn > 1 ? 's' : ''}, or cut filler words.`]
+    : ['warn', `${nn} notes but ${ns} syllables. Add words, or type ~ after a word to hold it over an extra note.`]);
+  if (!nn) return out.concat([['info', 'No melody yet. Try Make a melody, Hum it or Tap keys.']]);
+  const os = notes.map(n => n.o), lo = Math.min(...os), hi = Math.max(...os);
+  out.push(hi > 12 || lo < -3 ? ['warn', `Reaches ${noteName(r + (hi > 12 ? hi : lo))}, outside your comfortable range (${noteName(r - 3)} to ${noteName(r + 12)}).`] : ['ok', `Sits in your range, ${noteName(r + lo)} to ${noteName(r + hi)}.`]);
+  const L = ladder(song.mode), leaps = os.slice(1).filter((o, i) => Math.abs(L.indexOf(o) - L.indexOf(os[i])) > 2).length;
+  out.push(leaps === 0 ? ['info', 'All steps: very singable. One leap on an important word would make it more memorable.'] : leaps <= 2 ? ['ok', `Mostly steps with ${leaps} leap${leaps > 1 ? 's' : ''}: easy to sing and still memorable.`] : ['warn', `${leaps} big leaps. Hard to land in tune; keep one or two.`]);
+  const top = os.indexOf(hi), peaks = os.filter(o => o === hi).length;
+  if (peaks === 1 && nn > 3) out.push(['ok', `One high point${syls[top] ? ` on "${syls[top].t}"` : ''}. Make sure that word deserves it.`]);
+  else if (nn > 3) out.push(['info', 'Tip: give the line one clear high point on its most important word.']);
+  const e = ((os[nn - 1] % 12) + 12) % 12;
+  out.push(e === 0 ? ['ok', `Ends on your home note (${pc(r)}): it sounds finished.`] : e === 7 ? ['ok', `Ends on the fifth (${pc(r + 7)}): it sounds open and pulls into the next line.`] : ['info', `Ends on ${pc(r + os[nn - 1])}: it sounds unresolved, which builds tension.`]);
+  out.push(notes[nn - 1].l >= 1.5 ? ['ok', 'Long last note: room to breathe before the next line.'] : ['info', 'Tip: hold the last note longer so the line lands and you can breathe.']);
+  if (sec === 'Chorus') { const lift = chorusLift(song); if (lift != null) out.push(lift > 0.5 ? ['ok', 'This chorus sits higher than your verse, so it lifts.'] : ['warn', 'The chorus sits no higher than the verse. Starting it near the fifth makes it lift.']); }
+  return out;
+}
+function avgPitch(sec) { const all = sec.lines.flatMap(l => l.notes.map(n => n.o)); return all.length ? all.reduce((a, b) => a + b, 0) / all.length : null; }
+function chorusLift(song) { const v = avgPitch(song.secs[0]), c = avgPitch(song.secs[1]); return v == null || c == null ? null : c - v; }
+function checkSong(song) {
+  const ok = l => l.lyric.trim() && l.notes.length;
+  if ((chorusLift(song) || 0) > 0.5 && song.secs[1].lines.some(ok)) swDone('lift');
+  if (song.secs[0].lines.filter(ok).length >= 4 && song.secs[1].lines.filter(ok).length >= 4) swDone('song');
+}
+
+/* playback through the chosen guide instrument */
+let playTok = 0;
+function playNotes(notes, song, onNote) {
+  const c = actx(), bs = beatSec(song), tok = ++playTok; let t = c.currentTime + 0.12;
+  notes.forEach((n, i) => { if (n.o != null) tone(root() + n.o, t, Math.max(0.2, n.l * bs * 0.95), 0.16); const d = (t - c.currentTime) * 1000; setTimeout(() => { if (tok === playTok && onNote) onNote(i); }, d); t += n.l * bs; });
+  setTimeout(() => { if (tok === playTok && onNote) onNote(-1); }, (t - c.currentTime) * 1000);
+}
+function practice(notes, title, song) {
+  if (!notes.some(n => n.o != null)) { toast('Add a melody first.'); return; }
+  const bs = beatSec(song); let t = 3.2;
+  const ns = []; notes.forEach(n => { if (n.o != null) ns.push({midi: root() + n.o, start: t, dur: Math.max(0.3, n.l * bs * 0.92), hit: 0, done: false, ok: null, errSum: 0, errN: 0}); t += n.l * bs; });
+  LASTP = {notes, title, song}; playTok++;
+  launch(Battle(0, 0, {z: {c: RUST, tol: 40, atk: 5, beat: bs}, q: {name: title, emoji: '🎤'}, notes: ns}));
+}
+let LASTP = null;
+function finishPractice(b) {
+  const acc = b.att > 0 ? b.hit / b.att : 0; closeStage();
+  if (acc >= 0.7) swDone('perform');
+  const rw = grant(Math.round(8 + acc * 30), Math.round(acc * 10)); save();
+  const bad = b.notes.filter(n => n.errN > 5).sort((a, c) => a.hit / a.dur - c.hit / c.dur)[0];
+  let tip = acc >= 0.85 ? 'That line is in your voice. Try it without the guide notes next time.' : '';
+  if (!tip && bad) { const avg = bad.errSum / bad.errN; tip = Math.abs(avg) > 15 ? `Hardest note: ${pc(bad.midi)}. You drifted ${avg < 0 ? 'flat' : 'sharp'} by about ${Math.round(Math.abs(avg))}¢. If it keeps happening, the melody may want to move there by step.` : `Hardest note: ${pc(bad.midi)}. Hold it steadier.`; }
+  if (b.voicedT < 0.5) tip = 'I barely heard you. Check the mic permission, or use Touch mode on the Hero tab.';
+  result({win: acc >= 0.7, lose: acc < 0.7, spr: '🎤', zc: RUST, title: acc >= 0.85 ? 'Nailed it' : acc >= 0.7 ? 'Sung well' : 'Keep working it', stars: acc >= 0.9 ? 3 : acc >= 0.8 ? 2 : acc >= 0.7 ? 1 : 0, rw, tip,
+    rows: [['Accuracy', Math.round(acc * 100) + '%'], ['Notes landed', b.notes.filter(n => n.ok).length + ' of ' + b.notes.length]],
+    btns: `<button class="btn" data-a="pAgain">Again</button><button class="btn primary" data-a="pBack">Back to song</button>`});
+}
+
+/* Write tab */
+function renderWrite() {
+  const done = swDoneN(), sc = Math.min(SCROLLS.length, 2 + done);
+  let h = `<div class="sec"><span>Songsmith</span><span class="tiny">${done} of ${SW.length} done · ${sc} of ${SCROLLS.length} craft scrolls</span></div><div class="slab card in">`;
+  SW.forEach(q => { const d = S.sw[q[0]]; h += `<div class="swq ${d ? 'done' : ''}"><span class="ck">${d ? '✓' : ''}</span><div style="flex:1"><div class="tt">${q[1]}</div><div class="tiny">${q[2]}</div></div><span class="tiny" style="color:var(--mustard)">${d ? '' : '+' + q[3] + ' XP'}</span></div>`; });
+  h += `<button class="btn" style="width:100%;margin-top:10px" data-a="scrolls">Read craft scrolls</button></div>
+    <div class="sec"><span>Songbook</span><button class="btn sm primary" data-a="newSong">New song</button></div>`;
+  if (!S.songs.length) h += `<div class="slab card in" style="--i:1"><b>There are two ways into a song.</b><p class="tiny" style="font-size:15px;margin:6px 0 0">Words first: type a line and the game builds a melody for it in your key. Melody first: hum a tune and then fit words to it. Start a song and try both. Every song is written in your home key, so you can sing all of it.</p></div>`;
+  S.songs.forEach((sg, i) => { const lines = sg.secs.reduce((a, s) => a + s.lines.length, 0);
+    h += `<button class="song in" style="--i:${i + 1}" data-a="openSong" data-i="${i}"><span style="flex:1"><b>${esc(sg.title)}</b><span class="tiny">${pc(root())} ${sg.mode} · ${sg.tempo} BPM · ${lines} line${lines === 1 ? '' : 's'}</span></span><span class="tiny">Open</span></button>`; });
+  $('#view').innerHTML = h;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'})[c]);
+
+/* the studio: song view and line editor */
+let ST = null;
+const song = () => S.songs[ST.si];
+function openStudio(si) { ST = {si, sec: 0, view: 'song', ed: null}; $('#studio').classList.remove('hidden'); hush(1); renderStudio(); }
+function closeStudio() { playTok++; stopHum(); ST = null; $('#studio').classList.add('hidden'); hush(0); show(); }
+function lineChips(l, hl) {
+  const sy = syllables(l.lyric);
+  return sy.map((x, i) => { const n = l.notes[i]; return `<span class="${x.hold ? 'hold' : n ? '' : 'x'}${i === hl ? ' hl' : ''}" ${n ? `style="--nc:${col(root() + n.o, 58)}"` : ''}>${esc(x.t)}</span>`; }).join('')
+    + l.notes.slice(sy.length).map(n => `<span style="--nc:${col(root() + n.o, 58)};opacity:.55">♪</span>`).join('');
+}
+function renderStudio() {
+  if (!ST) return; const sg = song();
+  if (ST.view === 'line') return renderEditor();
+  const sec = sg.secs[ST.sec];
+  let h = `<div class="st-top"><button class="pill" data-a="swClose" aria-label="Close song">✕</button><input id="songTitle" value="${esc(sg.title)}" aria-label="Song title" maxlength="40"><button class="pill" data-a="swCopy">Copy</button></div>
+    <div class="sw-body">
+      <div class="row sp" style="flex-wrap:wrap;gap:8px"><div class="chips"><button class="chip ${sg.mode === 'major' ? 'on' : ''}" data-a="swMode" data-v="major">Major</button><button class="chip ${sg.mode === 'minor' ? 'on' : ''}" data-a="swMode" data-v="minor">Minor</button></div>
+        <div class="chips">${[70, 90, 110].map(t => `<button class="chip ${sg.tempo === t ? 'on' : ''}" data-a="swTempo" data-v="${t}">${t}</button>`).join('')}<span class="tiny" style="align-self:center">BPM</span></div></div>
+      <div class="tiny">Key of ${pc(root())} ${sg.mode}: your home note, set by your voice. ${sg.mode === 'minor' ? 'Minor sounds darker and more serious.' : 'Major sounds brighter and more settled.'}</div>
+      <div class="secs">${sg.secs.map((s, i) => `<button class="chip ${i === ST.sec ? 'on' : ''}" data-a="swSec" data-i="${i}">${s.name} ${s.lines.length ? '· ' + s.lines.length : ''}</button>`).join('')}</div>`;
+  if (!sec.lines.length) h += `<div class="tiny" style="font-size:15px">${ST.sec === 1 ? 'The chorus is the part people remember. Keep it short, repeat its key line, and let it sit higher than the verse.' : ST.sec === 2 ? 'A bridge is a change of view: new words, new melody, often a new contour. It makes the last chorus hit harder.' : 'The verse tells the story. Keep it lower and calmer than the chorus so the chorus can lift.'}</div>`;
+  sec.lines.forEach((l, i) => { const ns = l.notes.map(n => pc(root() + n.o)).join(' ');
+    h += `<div class="row" style="gap:8px"><button class="line" data-a="swEdit" data-i="${i}" style="--lc:${l.notes.length ? col(root() + l.notes[0].o, 50) : 'var(--line)'}"><span class="lt"><b>${esc(l.lyric || '(no words yet)')}</b><small>${ns || 'no melody yet'}</small></span></button><button class="pill" data-a="swPlayLine" data-i="${i}" aria-label="Play line">▶</button></div>`; });
+  const lift = ST.sec === 1 ? chorusLift(sg) : null;
+  if (lift != null) h += `<div class="coach"><div class="${lift > 0.5 ? 'ok' : 'warn'}"><b>${lift > 0.5 ? '✓' : '!'}</b><span>${lift > 0.5 ? 'Your chorus sits higher than your verse. It lifts.' : 'Your chorus sits no higher than your verse. Try starting it near ' + pc(root() + 7) + '.'}</span></div></div>`;
+  h += `<button class="btn" data-a="swNewLine">+ Add a line to the ${sec.name.toLowerCase()}</button>
+      <button class="link" data-a="swDelSong">Delete this song</button></div>
+    <div class="sw-foot"><button class="btn" data-a="swPlaySec" ${sec.lines.some(l => l.notes.length) ? '' : 'disabled'}>▶ Play ${sec.name.toLowerCase()}</button><button class="btn primary" data-a="swSingSec" ${sec.lines.some(l => l.notes.length) ? '' : 'disabled'}>Sing it</button></div>`;
+  $('#studio').innerHTML = h;
+}
+function openLine(i) {
+  const sec = song().secs[ST.sec], l = i < 0 ? {lyric: '', notes: []} : sec.lines[i];
+  ST.view = 'line'; ST.ed = {li: i, lyric: l.lyric, notes: l.notes.map(n => ({...n})), sel: -1, undo: null, tool: null, contour: 'arch', ending: 'home', rec: null, play: -1, used: {}};
+  renderStudio();
+}
+function renderEditor() {
+  const E = ST.ed, sg = song(), sec = sg.secs[ST.sec], L = ladder(sg.mode), r = root();
+  let tool = '';
+  if (E.tool === 'keys') tool = `<div class="keys">${L.slice().reverse().map(o => `<button data-a="edKey" data-o="${o}" style="--nc:${col(r + o, 56)}">${lab(r + o)}</button>`).join('')}</div><div class="tiny">Each tap adds a note after the selected one and plays it.</div>`;
+  if (E.tool === 'make') tool = `<div class="chips">${Object.keys(CONTOURS).map(k => `<button class="chip ${E.contour === k ? 'on' : ''}" data-a="edContour" data-v="${k}">${CONTOURS[k]}</button>`).join('')}</div>
+    <div class="chips"><button class="chip ${E.ending === 'home' ? 'on' : ''}" data-a="edEnding" data-v="home">End on home</button><button class="chip ${E.ending === 'open' ? 'on' : ''}" data-a="edEnding" data-v="open">Leave it open</button></div>
+    <button class="btn primary" data-a="edMake">Make a melody</button><div class="tiny">Press again for a different take. The shape you pick is the contour: how the line rises and falls.</div>`;
+  if (E.tool === 'hum') tool = `<div class="tiny" id="humLive" style="font-size:16px">${E.rec ? (E.rec.on ? 'Listening… hum your tune, then press Stop.' : 'Here is your home note…') : 'Press Start, listen to your home note, then hum or sing your tune on "la". The game turns it into notes in your key.'}</div>
+    <button class="btn ${E.rec ? 'bad' : 'primary'}" data-a="edHum">${E.rec ? 'Stop' : 'Start'}</button>`;
+  $('#studio').innerHTML = `<div class="st-top"><button class="pill" data-a="edBack" aria-label="Back to song">←</button><b>${sec.name} · line ${E.li < 0 ? sec.lines.length + 1 : E.li + 1}</b><button class="pill" data-a="edDel">Delete</button></div>
+    <div class="sw-body">
+      <div class="sw-lab"><span>LYRIC</span><span id="edCount"></span></div>
+      <input class="sw-in" id="edLyric" value="${esc(E.lyric)}" placeholder="Type a line, or hum a melody first" autocomplete="off" maxlength="120">
+      <div class="syls" id="edSyl"></div>
+      <div class="tiny">A dash splits a word your way (beau-ti-ful). A ~ after a word holds it over one more note.</div>
+      <div class="sw-lab"><span>MELODY · tap a note to select it, tap again to move it</span><span>${E.notes.reduce((a, n) => a + n.l, 0)} beats</span></div>
+      <div class="melwrap" id="melWrap"><canvas id="melCv"></canvas></div>
+      <div class="tools">${E.sel >= 0 ? `<button class="chip" data-a="edStep" data-v="1" aria-label="Note up">▲</button><button class="chip" data-a="edStep" data-v="-1" aria-label="Note down">▼</button><button class="chip" data-a="edLen" data-v="-0.5">Shorter</button><button class="chip" data-a="edLen" data-v="0.5">Longer</button><button class="chip" data-a="edDup">+ Note</button><button class="chip" data-a="edRm">Remove</button>` : '<span class="tiny">Select a note to change its pitch or length.</span>'}</div>
+      <div class="tools"><button class="chip ${E.tool === 'make' ? 'on' : ''}" data-a="edTool" data-v="make">Make a melody</button><button class="chip ${E.tool === 'hum' ? 'on' : ''} ${E.rec ? 'rec' : ''}" data-a="edTool" data-v="hum">Hum it</button><button class="chip ${E.tool === 'keys' ? 'on' : ''}" data-a="edTool" data-v="keys">Tap keys</button>${E.undo ? '<button class="chip" data-a="edUndo">Undo</button>' : ''}${E.notes.length ? '<button class="chip" data-a="edClear">Clear</button>' : ''}</div>
+      ${tool ? `<div class="slab card" style="display:flex;flex-direction:column;gap:10px;margin:0">${tool}</div>` : ''}
+      <div class="sw-lab"><span>COACH</span></div><div class="coach" id="edCoach"></div>
+    </div>
+    <div class="sw-foot"><button class="btn" data-a="edPlay" ${E.notes.length ? '' : 'disabled'}>▶ Play</button><button class="btn" data-a="edSing" ${E.notes.length ? '' : 'disabled'}>Sing it</button><button class="btn primary" data-a="edSave">Save</button></div>`;
+  edParts(); drawMel();
+  const cvs = $('#melCv'); cvs.addEventListener('click', melClick);
+}
+function edParts() {
+  const E = ST.ed, sy = syllables(E.lyric);
+  $('#edSyl').innerHTML = lineChips({lyric: E.lyric, notes: E.notes}, E.play);
+  $('#edCount').textContent = `${sy.length} syllable${sy.length === 1 ? '' : 's'} · ${E.notes.length} note${E.notes.length === 1 ? '' : 's'}`;
+  $('#edCoach').innerHTML = coach(sy, E.notes, song().secs[ST.sec].name, song()).map(c => `<div class="${c[0]}"><b>${c[0] === 'ok' ? '✓' : c[0] === 'warn' ? '!' : '·'}</b><span>${esc(c[1])}</span></div>`).join('');
+}
+const MEL = {gut: 34, pb: 46, foot: 26};
+function drawMel() {
+  const cvs = $('#melCv'); if (!cvs || !ST || !ST.ed) return; const E = ST.ed, sg = song(), L = ladder(sg.mode), r = root(), wrap = $('#melWrap');
+  const beats = E.notes.reduce((a, n) => a + n.l, 0), Wd = Math.max(wrap.clientWidth, MEL.gut + beats * MEL.pb + 70), Hd = 260, d = Math.min(2, devicePixelRatio || 1);
+  cvs.width = Wd * d; cvs.height = Hd * d; cvs.style.width = Wd + 'px'; const c = cvs.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0);
+  const rh = (Hd - MEL.foot) / L.length, yOfO = o => (L.length - 1 - L.indexOf(o)) * rh;
+  c.fillStyle = '#0f0d0c'; c.fillRect(0, 0, Wd, Hd);
+  L.forEach((o, i) => { const y = (L.length - 1 - i) * rh, home = ((o % 12) + 12) % 12 === 0;
+    c.fillStyle = home ? 'rgba(200,67,31,.12)' : i % 2 ? 'rgba(232,223,207,.025)' : 'transparent'; c.fillRect(0, y, Wd, rh);
+    c.font = '700 11px "Barlow Semi Condensed",sans-serif'; c.fillStyle = home ? RUST : col(r + o, 62, 0.85); c.textBaseline = 'middle'; c.fillText(lab(r + o), 4, y + rh / 2); });
+  let x = MEL.gut; const sy = syllables(E.lyric);
+  for (let b = 0; b <= beats + 1; b++) { c.fillStyle = b % 4 === 0 ? 'rgba(232,223,207,.16)' : 'rgba(232,223,207,.05)'; c.fillRect(MEL.gut + b * MEL.pb, 0, 1, Hd - MEL.foot); }
+  E.notes.forEach((n, i) => { const w = n.l * MEL.pb, y = yOfO(n.o);
+    c.fillStyle = '#000'; c.fillRect(x + 4, y + 4, w - 4, rh - 2); c.fillStyle = i === E.play ? BONE : col(r + n.o, i === E.sel ? 62 : 50); c.fillRect(x + 1, y + 1, w - 4, rh - 2);
+    if (i === E.sel) { c.strokeStyle = BONE; c.lineWidth = 3; c.strokeRect(x, y, w - 2, rh); }
+    c.fillStyle = sy[i] ? BONE : ASH; c.font = '700 12px "Barlow Semi Condensed",sans-serif'; c.textBaseline = 'middle';
+    const t = sy[i] ? sy[i].t : '–'; c.fillText(t.length > Math.floor(w / 6) ? t.slice(0, Math.max(1, Math.floor(w / 6))) : t, x + 3, Hd - MEL.foot / 2);
+    x += w; });
+  c.fillStyle = 'rgba(232,223,207,.25)'; c.font = '400 22px "Rubik Dirt",sans-serif'; c.textBaseline = 'middle'; c.fillText('+', x + 18, (Hd - MEL.foot) / 2);
+  E.geo = {rh, L, ends: E.notes.reduce((a, n) => { a.push((a.length ? a[a.length - 1] : MEL.gut) + n.l * MEL.pb); return a; }, [])};
+}
+function melClick(ev) {
+  const E = ST.ed, rect = ev.target.getBoundingClientRect(), x = ev.clientX - rect.left, y = ev.clientY - rect.top, G2 = E.geo; if (!G2 || y > 260 - MEL.foot) return;
+  const o = G2.L[clamp(G2.L.length - 1 - Math.floor(y / G2.rh), 0, G2.L.length - 1)], i = G2.ends.findIndex(e => x < e);
+  if (x < MEL.gut) return;
+  if (i < 0) { keep(); E.notes.push({o, l: 1}); E.sel = E.notes.length - 1; }
+  else if (i !== E.sel) E.sel = i;
+  else { keep(); E.notes[i].o = o; }
+  if (E.sel >= 0) tone(root() + E.notes[E.sel].o, actx().currentTime + 0.02, 0.5, 0.16);
+  renderEditor();
+}
+function keep() { ST.ed.undo = ST.ed.notes.map(n => ({...n})); }
+function saveLine(silent) {
+  const E = ST.ed, sec = song().secs[ST.sec], l = {lyric: E.lyric.trim(), notes: E.notes};
+  if (!l.lyric && !l.notes.length) return false;
+  if (E.li < 0) { sec.lines.push(l); E.li = sec.lines.length - 1; } else sec.lines[E.li] = l;
+  if (l.lyric && l.notes.length) { swDone('line'); prog('write', 1); }
+  if (E.used.gen && l.lyric && l.notes.length) swDone('gen');
+  if (E.used.hum && l.lyric && l.notes.length) swDone('hum');
+  checkSong(song()); save(); if (!silent) toast('Line saved'); return true;
+}
+/* hum recording */
+let humRaf = 0;
+function stopHum() { cancelAnimationFrame(humRaf); humRaf = 0; if (ST && ST.ed && ST.ed.rec) { ST.ed.rec = null; duck(1); } }
+async function startHum() {
+  if (input !== 'mic') { const ok = await enableMic(); if (!ok) { toast('Hum it needs a microphone. Use Tap keys or Make a melody instead.'); return; } }
+  const E = ST.ed; E.rec = {on: false, frames: [], t0: 0}; duck(0); renderEditor();
+  tone(root(), actx().currentTime + 0.05, 1.0, 0.16);
+  setTimeout(() => { if (!ST || !ST.ed || !E.rec) return; E.rec.on = true; E.rec.t0 = performance.now() / 1000; hist.length = 0; const h = $('#humLive'); if (h) h.textContent = 'Listening… hum your tune, then press Stop.';
+    const loop = () => { if (!E.rec) return; const now = performance.now() / 1000, v = sense(now); E.rec.frames.push({t: now - E.rec.t0, m: v.voiced ? v.m : null});
+      const h2 = $('#humLive'); if (h2) h2.textContent = v.voiced ? 'Hearing ' + noteName(v.m) + '…  press Stop when done' : 'Listening… hum your tune, then press Stop.';
+      if (now - E.rec.t0 > 30) return finishHum(); humRaf = requestAnimationFrame(loop); };
+    humRaf = requestAnimationFrame(loop); }, 1300);
+}
+function finishHum() {
+  const E = ST.ed, frames = E.rec ? E.rec.frames : []; stopHum();
+  const ns = segmentHum(frames, song());
+  if (ns.length < 2) { toast('I could not catch a tune. Hum a little louder, one clear note at a time.'); renderEditor(); return; }
+  keep(); E.notes = ns; E.sel = -1; E.used.hum = 1; renderEditor(); toast(`Caught ${ns.length} notes in ${pc(root())} ${song().mode}`);
+}
+/* voice finder: talk or hum, and the game picks your voice type */
+const VF = {on: false, ms: [], t0: 0};
+function vfType(m) { let best = 'tenor'; for (const k in VOICES) if (Math.abs(VOICES[k].root - m) < Math.abs(VOICES[best].root - m)) best = k; return best; }
+async function voiceFind(where) {
+  if (input !== 'mic') { const ok = await enableMic(); if (!ok) { voiceFindUI(where, 'nomic'); return; } }
+  VF.on = true; VF.ms = []; VF.t0 = performance.now() / 1000; VF.where = where; hist.length = 0; voiceFindUI(where, 'listen');
+  const loop = () => { if (!VF.on) return; const now = performance.now() / 1000, v = sense(now); if (v.voiced && v.m > 30 && v.m < 84) VF.ms.push(v.m);
+    const e = $('#vfMeter'); if (e) e.style.width = Math.min(100, VF.ms.length / 150 * 100) + '%';
+    if (VF.ms.length >= 150 || now - VF.t0 > 14) { VF.on = false; voiceFindDone(); return; } requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+function voiceFindDone() {
+  if (VF.ms.length < 40) { voiceFindUI(VF.where, 'quiet'); return; }
+  const s2 = VF.ms.slice().sort((a, b) => a - b), med = s2[s2.length >> 1];
+  VF.pick = vfType(med); VF.med = med; voiceFindUI(VF.where, 'done');
+}
+function voiceFindUI(where, st) {
+  const el = where === 'intro' ? $('#vfBox') : null;
+  const body = st === 'listen' ? `<p class="vsay">“Hey Echo. This is my voice, and I'm ready to sing.”</p><div class="tiny">Say it a couple of times in your normal voice, or hum any note that feels easy.</div><div class="vmeter"><i id="vfMeter"></i></div>`
+    : st === 'done' ? `<div class="tiny">Your voice sits around ${noteName(VF.med)}. That sounds like a</div><div class="vres">${VOICES[VF.pick].n}</div><div class="tiny">Home note ${noteName(VOICES[VF.pick].root)}. Voice types are a starting point, not a box. You can change it any time on the Hero tab.</div>
+       <div class="row" style="margin-top:14px"><button class="btn" data-a="vfAgain" data-w="${where}">Try again</button><button class="btn primary" data-a="vfOk" data-w="${where}">Sounds right</button></div>`
+    : st === 'quiet' ? `<p class="vsay">I couldn't hear enough.</p><div class="tiny">Get a little closer to the microphone and talk or hum for a few seconds.</div><div class="row" style="margin-top:14px"><button class="btn primary" data-a="vfAgain" data-w="${where}">Try again</button></div>`
+    : `<p class="vsay">No microphone here.</p><div class="tiny">Pick the voice that sounds closest. If you are not sure: most men are Baritone, most women are Alto.</div><div class="chips" style="justify-content:center;margin-top:10px">${Object.keys(VOICES).map(k => `<button class="chip ${S.voice === k ? 'on' : ''}" data-a="voice" data-v="${k}">${VOICES[k].n}</button>`).join('')}</div><button class="btn primary" style="margin-top:14px;width:100%" data-a="introDemo">Continue</button>`;
+  if (el) el.innerHTML = body; else openSheet(`<h2 class="res-t" style="margin-bottom:8px">Find my voice</h2><div class="c">${body}</div>`, true);
+}
+function secNotes() { const out = []; song().secs[ST.sec].lines.forEach((l, i) => { if (!l.notes.length) return; if (out.length) out.push({o: null, l: 1}); out.push(...l.notes); }); return out; }
+document.addEventListener('input', e => {
+  if (e.target.id === 'edLyric' && ST && ST.ed) { ST.ed.lyric = e.target.value; edParts(); drawMel(); }
+  if (e.target.id === 'songTitle' && ST) { song().title = e.target.value.trim() || 'Untitled'; save(); }
+});
+
 const MAKE = {blind: Blind, glide: Glide, echo: Echo, flame: Flame, mirror: Mirror};
 
 /* ================= ear duels: tap-only games, no singing ================= */
@@ -1152,7 +1516,7 @@ function findItem(id) { for (const s in S.gear) if (S.gear[s] && S.gear[s].id ==
 /* ================= actions ================= */
 const A = {
   tab: d => { tab = d.t; wantScroll = true; window.scrollTo(0, 0); show(); },
-  voice: d => { S.voice = d.v; save(); if (!S.seen) renderIntro(); else show(); try { tone(root(), actx().currentTime + 0.02, 0.8); } catch (e) {} },
+  voice: d => { S.voice = d.v; save(); if (!S.seen) document.querySelectorAll('[data-a=voice]').forEach(b => b.classList.toggle('on', b.dataset.v === S.voice)); else show(); try { tone(root(), actx().currentTime + 0.02, 0.8); } catch (e) {} },
   mic: async () => { if (await enableMic()) toast('Microphone on. Echo is listening.'); show(); },
   demoMode: () => { input = 'demo'; toast('Touch mode: touch and drag the play field to sing.'); show(); },
   octave: () => { S.anyOctave = !S.anyOctave; save(); show(); },
@@ -1164,6 +1528,46 @@ const A = {
   hear: hearSpell, close: closeSheet,
   fight: () => { const q = ZONES[cur.zi].quests[cur.qi]; if (q.tap) startQuiz(q.tap, {zi: cur.zi, qi: cur.qi, q}); else launch(Battle(cur.zi, cur.qi)); },
   retry: () => openPrep(cur.zi, cur.qi),
+  vfStart: d => voiceFind(d.w),
+  vfAgain: d => voiceFind(d.w),
+  vfManual: () => { const b = $('#vfBox'); if (b) b.innerHTML = `<p class="vsay">Pick your voice</p><div class="tiny">If you are not sure: most men are Baritone, most women are Alto.</div><div class="chips" style="justify-content:center;margin-top:10px">${Object.keys(VOICES).map(k => `<button class="chip ${S.voice === k ? 'on' : ''}" data-a="voice" data-v="${k}">${VOICES[k].n}</button>`).join('')}</div><button class="btn primary" style="margin-top:14px;width:100%" data-a="introMic">Continue</button>`; },
+  vfOk: d => { S.voice = VF.pick; save(); if (d.w === 'intro') { S.seen = true; save(); $('#intro').classList.add('hidden'); } else closeSheet(); show(); toast(`Voice set to ${VOICES[S.voice].n}. Home note ${noteName(root())}.`); try { tone(root(), actx().currentTime + 0.05, 1.2); } catch (e) {} },
+  newSong: () => { S.songs.unshift({title: 'Untitled ' + (S.songs.length + 1), mode: 'major', tempo: 90, secs: SECS.map(n => ({name: n, lines: []})), made: Date.now()}); save(); openStudio(0); },
+  openSong: d => openStudio(+d.i),
+  scrolls: () => { const n = Math.min(SCROLLS.length, 2 + swDoneN()); openSheet(`<h2 class="res-t" style="margin-bottom:6px">Craft scrolls</h2><div class="tiny c">${n} of ${SCROLLS.length} unlocked. Songsmith quests unlock the rest.</div>` + SCROLLS.map((x, i) => i < n ? `<div class="scroll"><b>${x[0]}</b>${x[1]()}</div>` : `<div class="scroll lock"><b>Locked</b>Finish another Songsmith quest to read this one.</div>`).join('') + `<button class="link" data-a="close">Close</button>`); },
+  swClose: () => closeStudio(),
+  swCopy: () => { const sg = song(); let t = `${sg.title}\nKey of ${pc(root())} ${sg.mode}, ${sg.tempo} BPM\n`;
+    sg.secs.forEach(sc => { if (!sc.lines.length) return; t += `\n[${sc.name}]\n`; sc.lines.forEach(l => { t += (l.lyric || '(instrumental)') + '\n  ' + l.notes.map(n => pc(root() + n.o) + (n.l >= 2 ? '—' : '')).join(' ') + '\n'; }); });
+    try { navigator.clipboard.writeText(t).then(() => toast('Lyric sheet copied'), () => toast('Copying is blocked here.')); } catch (e) { toast('Copying is blocked here.'); } },
+  swMode: d => { const sg = song(); sg.mode = d.v; const L = ladder(sg.mode); sg.secs.forEach(sc => sc.lines.forEach(l => l.notes.forEach(n => { n.o = snapL(n.o, L); }))); save(); renderStudio(); },
+  swTempo: d => { song().tempo = +d.v; save(); renderStudio(); },
+  swSec: d => { ST.sec = +d.i; renderStudio(); },
+  swEdit: d => openLine(+d.i),
+  swNewLine: () => openLine(-1),
+  swPlayLine: d => playNotes(song().secs[ST.sec].lines[+d.i].notes, song()),
+  swPlaySec: () => playNotes(secNotes(), song()),
+  swSingSec: () => practice(secNotes(), song().secs[ST.sec].name + ' · ' + song().title, song()),
+  swDelSong: e => { if (e.arm) { S.songs.splice(ST.si, 1); save(); closeStudio(); } else { e.el.textContent = 'Tap again to delete this song'; e.el.dataset.arm = 1; } },
+  edBack: () => { stopHum(); playTok++; saveLine(true); ST.view = 'song'; ST.ed = null; renderStudio(); },
+  edDel: e => { if (!e.arm) { e.el.textContent = 'Sure?'; e.el.dataset.arm = 1; return; } stopHum(); const E = ST.ed; if (E.li >= 0) song().secs[ST.sec].lines.splice(E.li, 1); save(); ST.view = 'song'; ST.ed = null; renderStudio(); },
+  edTool: d => { const E = ST.ed; if (E.rec) stopHum(); E.tool = E.tool === d.v ? null : d.v; renderEditor(); },
+  edKey: d => { const E = ST.ed; keep(); const at = E.sel >= 0 ? E.sel + 1 : E.notes.length; E.notes.splice(at, 0, {o: +d.o, l: 1}); E.sel = at; tone(root() + +d.o, actx().currentTime + 0.02, 0.5, 0.16); renderEditor(); },
+  edContour: d => { ST.ed.contour = d.v; renderEditor(); },
+  edEnding: d => { ST.ed.ending = d.v; renderEditor(); },
+  edMake: () => { const E = ST.ed, sy = syllables(E.lyric); if (!sy.length) { toast('Type a lyric first, then the game can build a melody for it.'); return; }
+    keep(); E.notes = makeMelody(sy, song().secs[ST.sec].name, song().mode, E.contour, E.ending); E.used.gen = 1; E.sel = -1; renderEditor(); A.edPlay(); },
+  edHum: () => { if (ST.ed.rec) finishHum(); else startHum(); },
+  edStep: d => { const E = ST.ed, L = ladder(song().mode), n = E.notes[E.sel]; if (!n) return; keep(); n.o = L[clamp(L.indexOf(snapL(n.o, L)) + +d.v, 0, L.length - 1)]; tone(root() + n.o, actx().currentTime + 0.02, 0.5, 0.16); renderEditor(); },
+  edLen: d => { const n = ST.ed.notes[ST.ed.sel]; if (!n) return; keep(); n.l = clamp(n.l + +d.v, 0.5, 4); renderEditor(); },
+  edDup: () => { const E = ST.ed, n = E.notes[E.sel]; if (!n) return; keep(); E.notes.splice(E.sel + 1, 0, {...n}); E.sel++; renderEditor(); },
+  edRm: () => { const E = ST.ed; if (E.sel < 0) return; keep(); E.notes.splice(E.sel, 1); E.sel = Math.min(E.sel, E.notes.length - 1); renderEditor(); },
+  edUndo: () => { const E = ST.ed; if (!E.undo) return; const t = E.notes; E.notes = E.undo; E.undo = t; E.sel = -1; renderEditor(); },
+  edClear: () => { keep(); ST.ed.notes = []; ST.ed.sel = -1; renderEditor(); },
+  edPlay: () => { const E = ST.ed; playNotes(E.notes, song(), i => { if (!ST || ST.ed !== E) return; E.play = i; edParts(); drawMel(); }); },
+  edSing: () => practice(ST.ed.notes, ST.ed.lyric.trim() || 'Your line', song()),
+  edSave: () => { if (!saveLine()) { toast('Add some words or notes first.'); return; } ST.view = 'song'; ST.ed = null; renderStudio(); },
+  pAgain: () => { closeSheet(); if (LASTP) practice(LASTP.notes, LASTP.title, LASTP.song); },
+  pBack: () => { closeSheet(); renderStudio(); },
   next: () => { const n = nextOf(cur.zi, cur.qi); if (n) openPrep(n.zi, n.qi); },
   home: () => { closeSheet(); tab = 'map'; wantScroll = true; show(); },
   done: () => { closeSheet(); show(); },
@@ -1194,18 +1598,18 @@ const A = {
     openSheet(`<h2 class="res-t" style="color:${RAR[p.it.rar].c}">${RAR[p.it.rar].n}</h2>${itemHTML(p.it)}${p.gold || p.tea ? `<div class="rewards">${p.gold ? `<span class="rw gold">+${p.gold}g</span>` : ''}${p.tea ? '<span class="rw">+1 tea</span>' : ''}</div>` : ''}<div class="row"><button class="btn primary" data-a="done">Take it</button></div>`, true); },
   reset: e => { if (e.arm) { try { localStorage.removeItem(KEY); localStorage.removeItem('vocalquest.v1'); } catch (x) {} location.reload(); } else { e.el.textContent = 'Tap again to erase everything'; e.el.dataset.arm = 1; } }
 };
-const QUIET = {inst: 1, pause: 1, resume: 1, tea: 1, again: 1, ref: 1, hear: 1, voice: 1, pop: 1, stat: 1, equip: 1, sell: 1, claim: 1, buyTea: 1, qplay: 1, qans: 1, pad: 1, parry: 1};
+const QUIET = {edKey: 1, edStep: 1, edPlay: 1, edMake: 1, swPlayLine: 1, swPlaySec: 1, vfOk: 1, inst: 1, pause: 1, resume: 1, tea: 1, again: 1, ref: 1, hear: 1, voice: 1, pop: 1, stat: 1, equip: 1, sell: 1, claim: 1, buyTea: 1, qplay: 1, qans: 1, pad: 1, parry: 1};
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el || el.disabled) return; const a = el.dataset.a, fn = A[a]; if (!fn) return;
   if (!QUIET[a] && !G) sfx('tap');
-  if (a === 'reset') fn({el, arm: el.dataset.arm}); else fn(el.dataset);
+  if (a === 'reset' || a === 'swDelSong' || a === 'edDel') fn({el, arm: el.dataset.arm}); else fn(el.dataset);
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden && G && !G.paused && !G.free) A.pause(); });
 
 /* ================= boot ================= */
 sizeBg(); ensureDaily(); show(); if (!S.seen) renderIntro();
 requestAnimationFrame(ambient);
-window.__vq = {S: () => S, G: () => G, Q: () => Q, demo, fx: () => AU.fxg ? [fxOn, AU.musg.gain.value] : null, setInput: v => { input = v; }};
+window.__vq = {vf: m => { VF.ms = Array(100).fill(m); VF.where = 'intro'; voiceFindDone(); }, S: () => S, G: () => G, Q: () => Q, demo, fx: () => AU.fxg ? [fxOn, AU.musg.gain.value] : null, setInput: v => { input = v; }};
 })();
 </script>
 </body>
