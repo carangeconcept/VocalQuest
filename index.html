@@ -227,6 +227,14 @@ h1,h2,h3,.disp{font-family:var(--display);font-weight:600;margin:0;text-wrap:bal
 @keyframes eq{to{height:40px}}
 .q-prompt{margin:0;font-size:18px;max-width:30ch}
 .q-tell{min-height:26px;font:600 19px var(--display)}
+.q-clock{width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.q-clock b{font:700 64px/1 var(--display);color:var(--brand);font-variant-numeric:tabular-nums;transition:color .2s}
+.q-cbar{width:100%;height:14px;border-radius:8px;background:#e1e7ec;overflow:hidden}
+.q-cbar i{display:block;height:100%;width:100%;background:var(--brand);border-radius:8px}
+.q-clock.amber b{color:var(--sun-d)}.q-clock.amber i{background:var(--sun)}
+.q-clock.red b{color:var(--coral);animation:pulseR .5s infinite}.q-clock.red i{background:var(--coral)}
+@keyframes pulseR{50%{transform:scale(1.12)}}
+.q-ans.n6{grid-template-columns:1fr 1fr 1fr}
 .q-tell.ok{color:var(--brand)}.q-tell.no{color:var(--coral)}
 .q-ans{display:grid;gap:12px;padding:6px 18px 22px}
 .q-ans.n2,.q-ans.n4{grid-template-columns:1fr 1fr}
@@ -354,7 +362,7 @@ const DQ = {lesson: ['Finish 2 lessons', 2], perfect: ['Get 3 stars on a lesson'
 const xpNeed = l => 60 + 40 * (l - 1);
 
 /* ================= save ================= */
-const KEY = 'vocalquest.v3', BEST0 = {glide: 0, echo: 0, flame: 0, name: 0, dir: 0, tune: 0, simon: 0, blind: 0};
+const KEY = 'vocalquest.v3', BEST0 = {glide: 0, echo: 0, flame: 0, name: 0, dir: 0, dirFast: 0, dirSemi: 0, tune: 0, simon: 0, blind: 0};
 let S = {voice: 'tenor', lvl: 1, xp: 0, gold: 0, sp: 0, stats: {pow: 0, foc: 0, vit: 0, luck: 0}, gear: {charm: null, cloak: null, lute: null}, bag: [], tea: 1, les: {}, streak: 0, lastDay: '', anyOctave: true, best: Object.assign({}, BEST0), daily: null, sfx: true, music: true, inst: 'voice', seen: false, nid: 1};
 try {   // opening the page with ?reset in the address wipes the save (handy while testing)
   if (/[?&]reset\b/.test(location.search)) { ['vocalquest.v3', 'vocalquest.v2', 'vocalquest.v1'].forEach(k => localStorage.removeItem(k)); history.replaceState(null, '', location.pathname); }
@@ -693,7 +701,7 @@ function renderLearn() {
 const GAMES = {
   echo: {e: '🔔', n: 'Echo Shrine', d: 'Hear a note, sing it back from memory.', c: '#8b62e8', need: 'n4', best: () => S.best.echo ? S.best.echo + ' pts' : '', act: 'play'},
   flame: {e: '🔥', n: 'Steady Flame', d: 'One breath, one note. Hold it steady.', c: '#ef8a3b', need: 'n0', best: () => S.best.flame ? S.best.flame.toFixed(1) + 's' : '', act: 'play'},
-  dir: {e: '↕️', n: 'High or Low', d: 'Is the second note higher or lower?', c: '#3d8fe6', need: 'n0', best: () => S.best.dir ? S.best.dir + ' right' : '', act: 'ear'},
+  dir: {e: '↕️', n: 'High or Low', d: 'Higher or lower, against a clock that keeps getting faster.', c: '#3d8fe6', need: 'n0', best: () => S.best.dir ? S.best.dir + ' right' : '', act: 'ear'},
   name: {e: '🎯', n: 'Name That Note', d: 'Hear a note and tap its name.', c: '#14a37f', need: 'n7', best: () => S.best.name ? S.best.name + ' right' : '', act: 'ear'},
   simon: {e: '🧠', n: 'Riff Recall', d: 'Watch the riff light up, tap it back.', c: '#ef5d5d', need: 'chC', best: () => S.best.simon ? S.best.simon + ' notes' : '', act: 'ear'},
   tune: {e: '🎚️', n: 'Sharp or Flat', d: 'Is the second note flat, in tune or sharp?', c: '#e0a10b', need: 'b1', best: () => S.best.tune ? S.best.tune + ' right' : '', act: 'ear'},
@@ -1397,6 +1405,13 @@ const GEN = {
     return {prompt: `Home is ${pc(r)}. Name the second note.`, seq: [[r, 0.55], [r + a, 0.85]], opts: ch.map(c => ({t: pc(r + c) + (c === 12 ? ' ↑' : ''), c: col(r + c, 56)})), ans: ch.indexOf(a), tell: 'It was ' + pc(r + a) + (a === 12 ? ', an octave up' : '')}; },
   dir(d) { const base = root() + Math.floor(R() * 8), gap = d < 3 ? 5 + Math.floor(R() * 3) : d < 6 ? 2 + Math.floor(R() * 3) : d < 9 ? 1 : d < 12 ? 0.5 : d < 15 ? 0.3 : d < 18 ? 0.2 : 0.12, up = R() < 0.5;
     return {prompt: 'Is the second note higher or lower?', seq: [[base, 0.6], [base + (up ? gap : -gap), 0.6]], opts: [{t: '▼ Lower'}, {t: '▲ Higher'}], ans: up ? 1 : 0, tell: (gap >= 1 ? gap + ' semitone' + (gap > 1 ? 's ' : ' ') : Math.round(gap * 100) + '¢ ') + (up ? 'up' : 'down')}; },
+  semi(d) {   // how many semitones, and which way?
+    const max = d < 3 ? 4 : d < 6 ? 7 : 12, n = 1 + Math.floor(R() * max), up = R() < 0.5, v = up ? n : -n, base = root() + Math.floor(R() * 8) + (up ? 0 : 3);
+    const cand = [v - 1, v + 1, v - 2, v + 2, -v].filter(x => x !== 0 && x !== v && Math.abs(x) <= 12);
+    const opts = [v]; while (opts.length < (d < 6 ? 4 : 6) && cand.length) opts.push(cand.splice(Math.floor(R() * Math.min(3, cand.length)), 1)[0]);
+    opts.sort((a, b) => a - b); const lab = x => (x > 0 ? '▲ ' : '▼ ') + Math.abs(x);
+    return {prompt: 'How many semitones up or down?', seq: [[base, 0.65], [base + v, 0.75]], opts: opts.map(x => ({t: lab(x)})), ans: opts.indexOf(v),
+      tell: n + ' semitone' + (n > 1 ? 's ' : ' ') + (up ? 'up' : 'down') + ' (' + pc(base) + ' → ' + pc(base + v) + ')'}; },
   tune(d) { const m = root() + rnd([0, 2, 4, 5, 7, 9]), off = d < 3 ? 45 : d < 6 ? 32 : d < 9 ? 22 : d < 12 ? 15 : 10, k = rnd([-1, 0, 1]);
     return {prompt: 'The first note is true. Is the second flat, in tune or sharp?', seq: [[m, 0.7], [m + k * off / 100, 0.7]], opts: [{t: '♭ Flat'}, {t: 'In tune'}, {t: '♯ Sharp'}], ans: k + 1, tell: k ? off + '¢ ' + (k < 0 ? 'flat' : 'sharp') : 'Dead on'}; }
 };
@@ -1405,28 +1420,52 @@ function qTimer(fn, ms) { if (Q) Q.timers.push(setTimeout(() => { if (Q) fn(); }
 function closeQuiz() { if (Q) Q.timers.forEach(clearTimeout); Q = null; $('#quiz').classList.add('hidden'); }
 function qTop() { return `<div class="st-top"><button class="pill" data-a="qquit" aria-label="Leave">✕</button><b>${Q.title}</b><span class="q-lives" id="qLives"></span></div>`; }
 function qLives() { const e = $('#qLives'); if (e) e.innerHTML = '♥'.repeat(Math.max(0, Q.lives)) + '<s>' + '♥'.repeat(Q.maxLives - Math.max(0, Q.lives)) + '</s>'; }
-function startQuiz(kind, battle) {
+/* High or Low comes in three modes; the harder two are timed and unlock as you progress */
+const DIR_MODES = {
+  fast: {n: 'Speed Round', d: 'Higher or lower against a big countdown. 5 seconds at first, and it gets faster with every right answer, down to 1.5.', need: null, best: 'dirFast', gen: 'dir', t0: 5, k: 0.93, tMin: 1.5, xp: 1.5},
+  semi: {n: 'Semitones', d: 'Which way, and how many semitones? 8 seconds at first, speeding up to 3.', need: 'b3', best: 'dirSemi', gen: 'semi', t0: 8, k: 0.95, tMin: 3, xp: 2},
+  classic: {n: 'Classic', d: 'No clock. Good for warming up.', need: null, best: 'dir', gen: 'dir'}};
+function dirMenu() {
+  openSheet(`<h2 class="res-t" style="margin-bottom:12px">↕️ High or Low</h2>` + Object.keys(DIR_MODES).map(k => { const m = DIR_MODES[k], ok = !m.need || isDone(m.need);
+    return `<button class="game" style="--gc:#3d8fe6;width:100%;margin-bottom:10px" data-a="dirGo" data-m="${k}" ${ok ? '' : 'disabled'}><span class="ge">${ok ? (m.t0 ? '⏱️' : '↕️') : '🔒'}</span><span><b>${m.n}</b><span class="tiny">${ok ? m.d : 'Unlocks after "' + titleOf(m.need) + '"'}</span></span>${ok && S.best[m.best] ? `<span class="best">Best<br>${S.best[m.best]}</span>` : ''}</button>`; }).join(''));
+}
+function startQuiz(kind, battle, mode) {
   closeSheet(); const lives = 3 + (battle ? Math.floor(eff('vit') / 3) : 0), need = battle ? (battle.zi >= 3 ? 7 : 6) : 0;
-  Q = {kind, battle, title: battle ? battle.q.name : EARS[kind].n, d: battle ? battle.zi * 3 : 0, score: 0, miss: 0, streak: 0, lives, maxLives: lives, need, foe: need, busy: false, cur: null, timers: []};
+  const M = !battle && kind === 'dir' ? DIR_MODES[mode || 'classic'] : null;
+  Q = {kind, battle, mode: M ? (mode || 'classic') : null, M, title: battle ? battle.q.name : M && M.t0 ? 'High or Low · ' + M.n : EARS[kind].n, d: battle ? battle.zi * 3 : 0, score: 0, miss: 0, streak: 0, lives, maxLives: lives, need, foe: need, busy: false, cur: null, timers: []};
   $('#quiz').classList.remove('hidden'); nextQ();
 }
 function playSeq2() {
   if (!Q || !Q.cur) return; const c = actx(); let t = c.currentTime + 0.12;
   for (const p of Q.cur.seq) { tone(p[0], t, p[1], 0.17); t += p[1] + 0.2; }
+  const ms = (t - c.currentTime) * 1000;
   const pl = $('.q-plate'); if (pl) { pl.classList.add('playing'); qTimer(() => { const e = $('.q-plate'); if (e) e.classList.remove('playing'); }, (t - c.currentTime) * 1000); }
+  return ms;
 }
 function nextQ() {
-  const q = Q.cur = GEN[Q.kind](Q.d), b = Q.battle; Q.busy = false;
-  $('#quiz').innerHTML = qTop() + `<div class="q-body">${b ? `<div class="q-foe">${ico(b.q.emoji, 96)}<div class="pips">${'<i class="on"></i>'.repeat(Q.foe)}${'<i></i>'.repeat(Q.need - Q.foe)}</div></div>` : `<div class="q-score"><span>${Q.score}</span><small>STREAK ${Q.streak} · BEST ${S.best[Q.kind] || 0}</small></div>`}
+  const q = Q.cur = GEN[Q.M ? Q.M.gen : Q.kind](Q.d), b = Q.battle, M = Q.M, bk = M ? M.best : Q.kind; Q.busy = false;
+  const lim = M && M.t0 ? Math.max(M.tMin, M.t0 * Math.pow(M.k, Q.score)) : 0;   // speeds up as you go
+  $('#quiz').innerHTML = qTop() + `<div class="q-body">${b ? `<div class="q-foe">${ico(b.q.emoji, 96)}<div class="pips">${'<i class="on"></i>'.repeat(Q.foe)}${'<i></i>'.repeat(Q.need - Q.foe)}</div></div>` : `<div class="q-score"><span>${Q.score}</span><small>STREAK ${Q.streak} · BEST ${S.best[bk] || 0}</small></div>`}
+    ${lim ? `<div class="q-clock" id="qClock"><b>${lim.toFixed(1)}</b><div class="q-cbar"><i></i></div></div>` : ''}
     <button class="q-plate" data-a="qplay"><span class="eq">${[0, 1, 2, 3, 4].map(k => `<i style="--k:${k}"></i>`).join('')}</span><span>TAP TO HEAR AGAIN</span></button>
     <p class="q-prompt">${q.prompt}</p><div class="q-tell" id="qTell"></div></div>
     <div class="q-ans n${q.opts.length}">${q.opts.map((o, i) => `<button class="q-btn" data-a="qans" data-i="${i}" ${o.c ? `style="--nc:${o.c}"` : ''}>${o.t}</button>`).join('')}</div>`;
-  qLives(); qTimer(playSeq2, 350);
+  qLives(); qTimer(() => { const ms = playSeq2(); if (lim) qTimer(() => runClock(q, lim), ms); }, 350);
+}
+/* the big countdown: starts once both notes have played; running out counts as a miss */
+function runClock(q, lim) {
+  const t0 = performance.now(); let lastTick = Math.ceil(lim);
+  const step = () => { if (!Q || Q.cur !== q || Q.busy) return; const left = Math.max(0, lim - (performance.now() - t0) / 1000), el = $('#qClock'); if (!el) return;
+    el.querySelector('b').textContent = left.toFixed(1); const f = left / lim; el.querySelector('i').style.width = f * 100 + '%';
+    el.className = 'q-clock' + (left <= 1.5 ? ' red' : left <= lim / 2 ? ' amber' : '');
+    const sec = Math.ceil(left); if (sec < lastTick) { lastTick = sec; if (sec <= 3 && sec > 0) sfx('count'); }
+    if (left <= 0) { answer(-1); return; } requestAnimationFrame(step); };
+  requestAnimationFrame(step);
 }
 function answer(i) {
   if (!Q || Q.busy || Q.simon) return; Q.busy = true; const q = Q.cur, ok = i === q.ans, btns = document.querySelectorAll('#quiz .q-btn'), tell = $('#qTell');
-  btns[q.ans].classList.add('ok'); if (!ok) btns[i].classList.add('no');
-  tell.textContent = (ok ? 'Right. ' : 'Wrong. ') + q.tell; tell.className = 'q-tell ' + (ok ? 'ok' : 'no');
+  btns[q.ans].classList.add('ok'); if (!ok && btns[i]) btns[i].classList.add('no');
+  tell.textContent = (ok ? 'Right. ' : i < 0 ? 'Too slow! ' : 'Wrong. ') + q.tell; tell.className = 'q-tell ' + (ok ? 'ok' : 'no');
   if (ok) { Q.score++; Q.streak++; sfx('right'); if (Q.battle) Q.foe--; else Q.d = Q.score * 0.6; }
   else { Q.miss++; Q.streak = 0; Q.lives--; sfx('miss'); qLives(); }
   const end = Q.battle ? (Q.foe <= 0 ? 'win' : Q.lives <= 0 ? 'lose' : null) : (Q.lives <= 0 ? 'over' : null);
@@ -1435,8 +1474,8 @@ function answer(i) {
 function finishQuiz(end) {
   const q = Q, b = q.battle; prog('ear', q.score); closeQuiz();
   if (b) return concludeFight({zi: b.zi, qi: b.qi, q: b.q, win: end === 'win', stars: q.miss === 0 ? 3 : q.miss === 1 ? 2 : 1, rows: [['Right answers', q.score], ['Mistakes', q.miss]], tip: end === 'win' ? '' : 'Tap the speaker plate to hear the notes again before you answer. There is no clock in an ear duel.'});
-  const best = q.score > (S.best[q.kind] || 0); if (best) S.best[q.kind] = q.score; const sb = touchDay(), rw = grant(5 + q.score * 4, q.score * 2 + sb); save();
-  arcadeResult(q.kind, {win: best && q.score > 0, lose: true, spr: EARS[q.kind].e, title: best && q.score > 0 ? 'New best' : 'Ears spent', rw, rows: [['Right answers', q.score], ['Your best', S.best[q.kind]]]}, 'ear');
+  const bk = q.M ? q.M.best : q.kind, x = q.M && q.M.xp || 1, best = q.score > (S.best[bk] || 0); if (best) S.best[bk] = q.score; const sb = touchDay(), rw = grant(Math.round((5 + q.score * 4) * x), Math.round(q.score * 2 * x) + sb); save();
+  arcadeResult(q.mode ? q.kind + ':' + q.mode : q.kind, {win: best && q.score > 0, lose: true, spr: q.M && q.M.t0 ? '⏱️' : EARS[q.kind].e, title: best && q.score > 0 ? 'New best' : q.M && q.M.t0 ? 'Time\'s up' : 'Ears spent', rw, rows: [['Right answers', q.score], ['Your best', S.best[bk]]]}, 'ear');
 }
 /* Riff Recall: watch the pads, tap the riff back */
 function startSimon() {
@@ -1499,7 +1538,8 @@ const A = {
   home: () => { closeSheet(); tab = 'learn'; wantScroll = true; show(); },
   done: () => { closeSheet(); show(); },
   play: d => launch(MAKE[d.g]()),
-  ear: d => { if (d.g === 'simon') startSimon(); else startQuiz(d.g, null); },
+  ear: d => { const [g, m] = d.g.split(':'); if (g === 'simon') startSimon(); else if (g === 'dir' && !m) dirMenu(); else startQuiz(g, null, m); },
+  dirGo: d => { closeSheet(); startQuiz('dir', null, d.m); },
   qplay: () => { if (Q && !Q.busy) playSeq2(); },
   qans: d => answer(+d.i),
   pad: d => padTap(+d.i),
