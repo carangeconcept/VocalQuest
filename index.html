@@ -250,6 +250,8 @@ h1,h2,h3,.disp{font-family:var(--display);font-weight:600;margin:0;text-wrap:bal
 .w-words:focus{border-color:var(--brand)}
 .w-add{display:flex;flex-direction:column;gap:10px;margin-top:16px}
 .w-opt{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;border:0;background:#fff;border-radius:16px;padding:12px 14px;margin-bottom:8px;box-shadow:0 0 0 2px var(--line) inset,0 3px 0 var(--line);font-size:16px}
+.w-nts{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.w-nts i{font-style:normal;font:800 11px var(--body);color:#fff;background:var(--nc);border-radius:6px;padding:2px 6px}
+.w-idea .btn.sm{min-height:34px;padding:4px 12px}
 .w-opt.cur{box-shadow:0 0 0 2px var(--brand) inset,0 3px 0 var(--brand)}
 .w-opt:disabled{opacity:.45}
 .w-kb{display:flex;gap:4px;overflow-x:auto}
@@ -569,7 +571,7 @@ async function enableMic() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('unsupported');
     const stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: false, noiseSuppression: false, autoGainControl: false}});
     const c = actx(), src = c.createMediaStreamSource(stream), an = c.createAnalyser();
-    an.fftSize = 2048; src.connect(an); Mic.an = an; Mic.buf = new Float32Array(2048); Mic.on = true; input = 'mic'; return true;
+    an.fftSize = 2048; src.connect(an); Mic.an = an; Mic.stream = stream; Mic.buf = new Float32Array(2048); Mic.on = true; input = 'mic'; return true;
   } catch (e) { input = 'demo'; toast('No microphone here, so Touch mode is on: touch and drag to sing.'); return false; }
 }
 
@@ -1529,6 +1531,9 @@ function padTap(i) {
 const SKEY = 'vocalquest.songs', MOODS = ['Love', 'Heartbreak', 'Hope', 'Freedom', 'Party', 'Night drive'];
 let SONGS = []; try { SONGS = JSON.parse(localStorage.getItem(SKEY) || '[]'); } catch (e) {}
 const SW = {cur: 0, sel: null, rec: null, keys: false, playing: 0};
+let WOPT = {tune: true}; try { WOPT = Object.assign(WOPT, JSON.parse(localStorage.getItem('vocalquest.wopts') || '{}')); } catch (e) {}
+const saveWopt = () => { try { localStorage.setItem('vocalquest.wopts', JSON.stringify(WOPT)); } catch (e) {} };
+const TAKES = new WeakMap();   // your real recorded voice for each line (kept until the page closes)
 const saveSongs = () => { try { localStorage.setItem(SKEY, JSON.stringify(SONGS)); } catch (e) {} };
 const song = () => SONGS[SW.cur];
 function newSong() { SONGS.unshift({id: Date.now(), title: 'Untitled song', mood: 'Love', lines: []}); SW.cur = 0; SW.sel = null; saveSongs(); }
@@ -1563,7 +1568,9 @@ const sylCount = t => syllables(t).length;
 const median = a => { const s = a.slice().sort((x, y) => x - y); return s[s.length >> 1]; };
 function segment(F) {   // F: [{t, dt, m|null}] -> [{m, d, r}]
   const raw = []; let cur = null, gap = 0;
-  const close = () => { if (cur && cur.t1 - cur.t0 >= 0.09) raw.push(cur); cur = null; };
+  const close = () => { if (!cur) return; const prev = raw[raw.length - 1];
+    if (cur.t1 - cur.t0 >= 0.09) raw.push(cur); else if (prev && cur.t0 - prev.t1 < 0.03) prev.t1 = cur.t1;   // a glitch inside a held note: the note just carries on
+    cur = null; };
   for (const f of F) {
     if (f.m == null) { if (cur) { gap += f.dt; if (gap > 0.05) close(); } continue; }
     if (!cur) { cur = {ms: [f.m], t0: f.t, t1: f.t + f.dt, split: gap <= 0.05 && raw.length && raw[raw.length - 1].t1 > f.t - 0.06}; gap = 0; continue; }
@@ -1677,10 +1684,62 @@ function joinSyl(text, syl) { const words = text.split(/\s+/).filter(Boolean); l
     out.push(parts.length > 1 && sylWord(w).length !== parts.length ? parts.join('-') : w); }
   return i === syl.length ? out.join(' ') : text; }
 
+/* ---------- auto-tune and melody ideas ---------- */
+const PENTA = k => (k.minor ? [0, 3, 5, 7, 10] : [0, 2, 4, 7, 9]).map(x => (x + k.t) % 12);
+const pcOk = (m, sc) => sc.includes(((m % 12) + 12) % 12);
+function snapScale(ns, sc) { ns.forEach((n, i) => { if (pcOk(n.m, sc)) return; const prev = i ? ns[i - 1].m : n.m, dir = n.m >= prev ? 1 : -1;
+  for (const o of [dir, -dir, 2 * dir, -2 * dir]) if (pcOk(n.m + o, sc)) { n.m += o; return; } }); return ns; }
+function quantize(ns) {   // line the rhythm up on a steady grid (half of a typical note)
+  if (ns.length < 2) return ns; const g = clamp(median(ns.map(n => n.d + n.r)) / 2, 0.12, 0.32); let t = 0, q = 0;
+  return ns.map((n, i) => { t += i ? n.r : 0; const on = Math.round(t / g) * g, d = Math.max(1, Math.round(n.d / g)) * g, r = i ? Math.max(0, +(on - q).toFixed(3)) : 0; q = (i ? q + r : on) + d; t += n.d; return {m: n.m, d: +d.toFixed(3), r}; }); }
+function lineKey(raw, li) { const others = song().lines.filter((x, i) => i !== li).flatMap(x => x.notes); return keyOf(others.concat(raw)); }
+function autoTune(raw, li, opt = {}) {
+  let ns = raw.map(n => ({m: n.m, d: n.d, r: n.r})); if (!ns.length) return ns;
+  const med = median(ns.map(n => n.m));
+  ns.forEach(n => { while (n.m - med > 9) n.m -= 12; while (med - n.m > 9) n.m += 12; });   // octave slips from the mic
+  for (let i = ns.length - 1; i >= 0 && ns.length > 1; i--) { const n = ns[i]; if (n.d >= 0.13) continue;   // blips: fold into a neighbour
+    if (i) ns[i - 1].d += n.r + n.d; else { ns[1].d += ns[1].r + n.d; ns[1].r = 0; } ns.splice(i, 1); }
+  const wob = opt.smooth ? 2 : 1;
+  for (let i = 1; i < ns.length - 1; i++) { const a = ns[i - 1], b = ns[i], c = ns[i + 1]; if (a.m === c.m && Math.abs(b.m - a.m) <= wob && b.d < 0.25) b.m = a.m; }   // wobbles
+  const k = lineKey(ns, li); snapScale(ns, opt.penta ? PENTA(k) : scaleOf(k));
+  for (let i = ns.length - 1; i > 0; i--) if (ns[i].m === ns[i - 1].m && ns[i].r < 0.03) { ns[i - 1].d += ns[i].r + ns[i].d; ns.splice(i, 1); }   // one held note, not several
+  ns = quantize(ns);
+  if (opt.end) { const last = ns[ns.length - 1], target = opt.end === 'home' ? k.t : (k.t + 7) % 12; let best = last.m;
+    for (let o = -6; o <= 6; o++) if (((last.m + o) % 12 + 12) % 12 === target && Math.abs(o) < Math.abs(best - last.m || 99)) best = last.m + o;
+    last.m = best; last.d = Math.max(last.d, 0.6); }
+  return ns;
+}
+const IDEAS = [
+  {k: 'tuned', n: '🎯 Auto-tuned', d: 'What you hummed, cleaned up: in key, steady rhythm, mic glitches removed.', o: {}},
+  {k: 'smooth', n: '🌊 Smooth', d: 'Also irons out little wobbles between notes. Closest to what you meant if your voice shook.', o: {smooth: true}},
+  {k: 'penta', n: '🎤 Catchy', d: 'Snapped to the 5 most singable notes of the key. Pop hooks live here.', o: {smooth: true, penta: true}},
+  {k: 'home', n: '🏠 Strong ending', d: 'Lands on the home note, so the line feels finished. Good for ends of verses and choruses.', o: {smooth: true, end: 'home'}},
+  {k: 'lift', n: '🚀 Open ending', d: 'Ends up on the 5th, so the line leaves you wanting the next one. Good before a chorus.', o: {smooth: true, end: 'lift'}}];
+const notesTxt = ns => ns.map(n => pc(n.m)).join(' ');
+function playNotes(ns, t0, li, tok) {
+  const c = actx(); let t = (t0 || c.currentTime) + 0.08; if (tok == null) tok = ++SW.playing;
+  ns.forEach((n, i) => { t += i ? n.r : 0; tone(n.m, t, Math.max(0.12, n.d * 0.95), 0.2);
+    if (li != null) setTimeout(() => { if (SW.playing !== tok) return; document.querySelectorAll(`.w-roll[data-l="${li}"] .w-n`).forEach((e, k) => e.classList.toggle('on', k === i)); }, Math.max(0, (t - c.currentTime) * 1000));
+    t += n.d; });
+  if (li != null) setTimeout(() => document.querySelectorAll(`.w-roll[data-l="${li}"] .w-n.on`).forEach(e => e.classList.remove('on')), (t - c.currentTime) * 1000 + 100);
+  return t;
+}
+function ideasSheet(li) {
+  const l = song().lines[li], raw = l.raw || l.notes; SW.ideas = {li, list: IDEAS.map(x => ({...x, ns: autoTune(raw, li, x.o)}))};
+  if (l.raw) SW.ideas.list.unshift({k: 'raw', n: '🎙️ As sung', d: 'Exactly the notes the mic heard, no changes.', ns: l.raw.map(n => ({...n}))});
+  const k = lineKey(raw, li);
+  openSheet(`<h2 class="res-t" style="margin-bottom:4px">🎵 Melody ideas · line ${li + 1}</h2><div class="tiny" style="text-align:center;margin-bottom:10px">Key of ${keyName(k)}. Tap ▶ to hear each one, then pick the one that sounds like the tune in your head.</div>
+    ${TAKES.get(l) ? `<button class="btn sm" style="width:100%;margin-bottom:10px" data-a="wTake" data-l="${li}">🎧 Hear what you actually sang</button>` : ''}
+    ${SW.ideas.list.map((x, i) => `<div class="w-opt w-idea ${l.mode === x.k ? 'cur' : ''}"><div class="row sp"><b>${x.n}</b><span class="row"><button class="btn sm" data-a="wIdeaPlay" data-i="${i}">▶</button><button class="btn sm primary" data-a="wIdeaUse" data-i="${i}">Use</button></span></div>
+      <span class="tiny">${x.d}</span><span class="w-nts">${x.ns.map(n => `<i style="--nc:${col(n.m, 55)}">${pc(n.m)}</i>`).join('')}</span></div>`).join('')}
+    <button class="btn" style="width:100%;margin-top:4px" data-a="done">Close</button>`, true);
+}
+
 /* ---------- recording ---------- */
 async function recStart(li) {
   if (SW.rec) return; if (input !== 'mic') { const ok = await enableMic(); if (!ok) { toast('Microphone is off. Use 🎹 Tap notes instead.'); return; } }
-  SW.rec = {li, F: [], t0: performance.now() / 1000, last: performance.now() / 1000, lastV: 0, got: false}; hist.length = 0; listening = true; duck(0); musicTick();
+  SW.rec = {li, F: [], t0: performance.now() / 1000, last: performance.now() / 1000, lastV: 0, got: false};
+  try { if (Mic.stream && window.MediaRecorder) { const mr = new MediaRecorder(Mic.stream), ch = []; mr.ondataavailable = e => e.data.size && ch.push(e.data); mr.onstop = () => { SW.lastTake = URL.createObjectURL(new Blob(ch, {type: mr.mimeType})); if (SW.takeFor) { TAKES.set(SW.takeFor, SW.lastTake); if (tab === 'write' && !SW.rec && $('#scrim').classList.contains('hidden')) renderWrite(); } }; mr.start(); SW.rec.mr = mr; } } catch (e) {} hist.length = 0; listening = true; duck(0); musicTick();
   openSheet(`<h2 class="res-t" style="margin-bottom:6px">🎤 Hum your melody</h2><div class="tiny" style="text-align:center">Sing "da da da" or any sound, one syllable per note. Stop whenever you like; a long pause stops it too.</div>
     <canvas class="w-live" id="wLive"></canvas><div class="cue" id="wCue" style="text-align:center">Listening…</div>
     <button class="btn bad" style="width:100%;margin-top:10px" data-a="wStop">■ Stop</button>`, true);
@@ -1704,21 +1763,16 @@ function drawLive(r) {
 }
 function recStop() {
   const r = SW.rec; if (!r) return; SW.rec = null; listening = false; duck(1); closeSheet();
-  const notes = segment(r.F); if (!notes.length) { toast("I didn't catch any notes. Try a little louder."); return renderWrite(); }
-  const s = song(); if (r.li == null) { s.lines.push({notes, text: ''}); r.li = s.lines.length - 1; } else s.lines[r.li].notes = notes;
-  saveSongs(); SW.sel = null; renderWrite(); toast('Caught ' + notes.length + ' notes'); setTimeout(() => playLine(r.li), 400);
+  const raw = segment(r.F); SW.takeFor = null; if (r.mr && r.mr.state !== 'inactive') try { r.mr.stop(); } catch (e) {}
+  if (!raw.length) { toast("I didn't catch any notes. Try a little louder."); return renderWrite(); }
+  const s = song(); if (r.li == null) { s.lines.push({notes: [], text: ''}); r.li = s.lines.length - 1; } const l = s.lines[r.li];
+  l.raw = raw; l.notes = WOPT.tune ? autoTune(raw, r.li) : raw.map(n => ({...n})); l.mode = WOPT.tune ? 'tuned' : 'raw'; SW.takeFor = l;
+  saveSongs(); SW.sel = null; renderWrite(); toast('Caught ' + l.notes.length + ' notes' + (WOPT.tune ? ', auto-tuned' : '')); setTimeout(() => playLine(r.li), 400);
 }
 
 /* ---------- playback ---------- */
-function playLine(li, t0) {
-  const s = song(), l = s.lines[li], c = actx(); if (!l || !l.notes.length) return t0 || c.currentTime; let t = (t0 || c.currentTime) + 0.08; const tok = SW.playing;
-  l.notes.forEach((n, i) => { t += i ? n.r : 0; tone(n.m, t, Math.max(0.12, n.d * 0.95), 0.2);
-    setTimeout(() => { if (SW.playing !== tok) return; document.querySelectorAll(`.w-roll[data-l="${li}"] .w-n`).forEach((e, k) => e.classList.toggle('on', k === i)); }, Math.max(0, (t - c.currentTime) * 1000));
-    t += n.d; });
-  const end = (t - c.currentTime) * 1000; setTimeout(() => document.querySelectorAll(`.w-roll[data-l="${li}"] .w-n.on`).forEach(e => e.classList.remove('on')), end + 100);
-  return t;
-}
-function playSong() { SW.playing++; let t = actx().currentTime; song().lines.forEach((l, i) => { t = playLine(i, t) + 0.35; }); }
+function playLine(li, t0, tok) { const l = song().lines[li]; if (!l || !l.notes.length) return t0 || actx().currentTime; return playNotes(l.notes, t0, li, tok); }
+function playSong() { let t = actx().currentTime; const tok = ++SW.playing; song().lines.forEach((l, i) => { t = playLine(i, t, tok) + 0.35; }); }
 
 /* ---------- screen ---------- */
 const PX = 100;
@@ -1737,11 +1791,13 @@ function renderWrite() {
     <div class="card in"><input class="w-title" data-in="title" value="${esc(s.title)}" aria-label="Song title" maxlength="60">
       <div class="chips" style="margin-top:10px">${MOODS.map(m => `<button class="chip ${s.mood === m ? 'on' : ''}" data-a="wMood" data-v="${m}">${m}</button>`).join('')}</div>
       <div class="row sp" style="margin-top:12px"><span class="tiny">${s.lines.length} line${s.lines.length === 1 ? '' : 's'}${k ? ' · key of ' + keyName(k) : ''}</span>
-        <span class="row">${s.lines.length ? '<button class="btn sm" data-a="wPlayAll">▶ Play song</button>' : ''}<button class="btn sm" data-a="wSongs">📂 Songs</button></span></div></div>`;
+        <span class="row">${s.lines.length ? '<button class="btn sm" data-a="wPlayAll">▶ Play song</button>' : ''}<button class="btn sm" data-a="wSongs">📂 Songs</button></span></div>
+      <div class="row sp" style="margin-top:10px"><div>Auto-tune new takes<div class="tiny">Cleans up mic glitches, puts notes in key and steadies the rhythm</div></div><button class="chip ${WOPT.tune ? 'on' : ''}" data-a="wTune">${WOPT.tune ? 'On' : 'Off'}</button></div></div>`;
   s.lines.forEach((l, li) => { const sc = sylCount(l.text), n = l.notes.length, sel = SW.sel && SW.sel[0] === li;
     h += `<div class="card in w-line" style="--i:${li + 1}"><div class="row sp"><b>Line ${li + 1}</b><span class="tiny" style="color:${!l.text ? 'var(--mute)' : sc === n ? 'var(--brand)' : 'var(--sun-d)'}">${n} notes${l.text ? ' · ' + sc + ' syllables' + (sc === n ? ' ✓' : '') : ''}</span></div>
       ${n ? rollHTML(l, li) : '<div class="tiny" style="padding:20px 0;text-align:center">No melody yet. Hum one or tap notes.</div>'}
       ${sel ? `<div class="w-tools"><button class="btn sm" data-a="wEd" data-o="up">▲</button><button class="btn sm" data-a="wEd" data-o="down">▼</button><button class="btn sm" data-a="wEd" data-o="short">◀ Short</button><button class="btn sm" data-a="wEd" data-o="long">Long ▶</button><button class="btn sm" data-a="wEd" data-o="add">＋</button><button class="btn sm" data-a="wEd" data-o="del">🗑</button></div>` : ''}
+      ${n ? `<div class="w-acts">${l.raw ? `<button class="chip ${l.mode === 'raw' ? 'on' : ''}" data-a="wMode" data-l="${li}" data-v="raw">As sung</button><button class="chip ${l.mode === 'tuned' ? 'on' : ''}" data-a="wMode" data-l="${li}" data-v="tuned">Auto-tuned</button>` : ''}<button class="chip" data-a="wIdeas" data-l="${li}">🎵 Melody ideas</button>${TAKES.get(l) ? `<button class="chip" data-a="wTake" data-l="${li}">🎧 My take</button>` : ''}</div>` : ''}
       ${SW.keys === li ? kbWrite(li) : ''}
       <textarea class="w-words" data-in="words" data-l="${li}" rows="2" placeholder="Type words for this line. Use hyphens to split: beau-ti-ful">${esc(l.text)}</textarea>
       <div class="w-acts"><button class="btn sm" data-a="wPlay" data-l="${li}" ${n ? '' : 'disabled'}>▶ Play</button><button class="btn sm" data-a="wRec" data-l="${li}">🎤 ${n ? 'Re-hum' : 'Hum'}</button><button class="btn sm" data-a="wKeys" data-l="${li}">🎹</button>
@@ -1758,7 +1814,7 @@ function wEdit(o) { const [li, i] = SW.sel || []; const l = song().lines[li]; if
   if (o === 'up') n.m++; if (o === 'down') n.m--; if (o === 'short') n.d = Math.max(0.12, +(n.d * 0.75).toFixed(3)); if (o === 'long') n.d = +(n.d * 1.33).toFixed(3);
   if (o === 'add') { l.notes.splice(i + 1, 0, {m: n.m, d: n.d, r: 0.05}); SW.sel = [li, i + 1]; }
   if (o === 'del') { l.notes.splice(i, 1); SW.sel = null; }
-  saveSongs(); renderWrite(); const nn = SW.sel && l.notes[SW.sel[1]]; if (nn) tone(nn.m, actx().currentTime + 0.02, Math.min(0.6, nn.d), 0.2); }
+  l.mode = 'edited'; saveSongs(); renderWrite(); const nn = SW.sel && l.notes[SW.sel[1]]; if (nn) tone(nn.m, actx().currentTime + 0.02, Math.min(0.6, nn.d), 0.2); }
 async function wSuggest(kind, li) {
   openSheet(`<h2 class="res-t" style="margin-bottom:8px">✨ ${kind === 'next' ? 'What comes next?' : 'Words for line ' + (li + 1)}</h2><div class="c"><div class="cue" style="text-align:center">${AI ? 'Asking Claude…' : 'Thinking up ideas…'}</div></div>`, true);
   const r = await askLyrics(kind, li); SW.sug = {kind, li, ...r};
@@ -1790,6 +1846,12 @@ const WA = {
   wPlay: d => { SW.playing++; playLine(+d.l); }, wPlayAll: () => playSong(),
   wNote: d => { const li = +d.l, i = +d.i, same = SW.sel && SW.sel[0] === li && SW.sel[1] === i; SW.sel = same ? null : [li, i]; renderWrite(); const n = song().lines[li].notes[i]; tone(n.m, actx().currentTime + 0.02, Math.min(0.6, n.d), 0.2); },
   wEd: d => wEdit(d.o),
+  wTune: () => { WOPT.tune = !WOPT.tune; saveWopt(); renderWrite(); },
+  wMode: d => { const li = +d.l, l = song().lines[li]; if (!l.raw) return; l.notes = d.v === 'raw' ? l.raw.map(n => ({...n})) : autoTune(l.raw, li); l.mode = d.v; SW.sel = null; saveSongs(); renderWrite(); playLine(li); },
+  wIdeas: d => ideasSheet(+d.l),
+  wIdeaPlay: d => { const x = SW.ideas.list[+d.i]; if (x) playNotes(x.ns); },
+  wIdeaUse: d => { const g = SW.ideas, x = g.list[+d.i], l = song().lines[g.li]; l.notes = x.ns.map(n => ({...n})); l.mode = x.k; SW.sel = null; SW.ideas = null; saveSongs(); closeSheet(); renderWrite(); playLine(g.li); },
+  wTake: d => { const u = TAKES.get(song().lines[+d.l]); if (!u) return; SW.playing++; try { if (SW.aud) SW.aud.pause(); SW.aud = new Audio(u); SW.aud.play(); } catch (e) {} },
   wKeys: d => { SW.keys = SW.keys === +d.l ? false : +d.l; renderWrite(); },
   wKey: d => { const l = song().lines[+d.l], m = +d.m; l.notes.push({m, d: 0.4, r: l.notes.length ? 0.05 : 0}); tone(m, actx().currentTime + 0.02, 0.4, 0.2); saveSongs(); renderWrite(); },
   wSug: d => wSuggest('line', +d.l), wNext: () => wSuggest('next'), wSugAgain: () => wSuggest(SW.sug.kind, SW.sug.li), wUse: d => wUse(+d.i),
@@ -1883,7 +1945,7 @@ const A = {
   introDemo: () => { input = 'demo'; S.seen = true; save(); $('#intro').classList.add('hidden'); show(); toast('Touch mode: drag on the meter to sing. Listening lessons work without a mic.'); }
 };
 Object.assign(A, WA);
-const QUIET = {wNote: 1, wKey: 1, wPlay: 1, wPlayAll: 1, wRec: 1, wStop: 1, wEd: 1, wUse: 1, inst: 1, pause: 1, resume: 1, tea: 1, again: 1, ref: 1, voice: 1, pop: 1, stat: 1, equip: 1, sell: 1, claim: 1, buyTea: 1, qplay: 1, qans: 1, pad: 1, parry: 1, lsAns: 1, lsNext: 1, vfDone: 1, lsHear: 1, kbKey: 1, lsCheck: 1, lsPlayChord: 1, bossHear: 1, lsSkip: 1};
+const QUIET = {wIdeaPlay: 1, wTake: 1, wMode: 1, wIdeaUse: 1, wNote: 1, wKey: 1, wPlay: 1, wPlayAll: 1, wRec: 1, wStop: 1, wEd: 1, wUse: 1, inst: 1, pause: 1, resume: 1, tea: 1, again: 1, ref: 1, voice: 1, pop: 1, stat: 1, equip: 1, sell: 1, claim: 1, buyTea: 1, qplay: 1, qans: 1, pad: 1, parry: 1, lsAns: 1, lsNext: 1, vfDone: 1, lsHear: 1, kbKey: 1, lsCheck: 1, lsPlayChord: 1, bossHear: 1, lsSkip: 1};
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el || el.disabled) return; const a = el.dataset.a, fn = A[a]; if (!fn) return;
   if (!QUIET[a] && !G && !listening) sfx('tap');
