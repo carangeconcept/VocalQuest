@@ -702,7 +702,7 @@ const GAMES = {
   echo: {e: '🔔', n: 'Echo Shrine', d: 'Hear a note, sing it back from memory.', c: '#8b62e8', need: 'n4', best: () => S.best.echo ? S.best.echo + ' pts' : '', act: 'play'},
   flame: {e: '🔥', n: 'Steady Flame', d: 'One breath, one note. Hold it steady.', c: '#ef8a3b', need: 'n0', best: () => S.best.flame ? S.best.flame.toFixed(1) + 's' : '', act: 'play'},
   dir: {e: '↕️', n: 'High or Low', d: 'Higher or lower, against a clock that keeps getting faster.', c: '#3d8fe6', need: 'n0', best: () => S.best.dir ? S.best.dir + ' right' : '', act: 'ear'},
-  name: {e: '🎯', n: 'Name That Note', d: 'Hear a note and tap its name.', c: '#14a37f', need: 'n7', best: () => S.best.name ? S.best.name + ' right' : '', act: 'ear'},
+  name: {e: '🎯', n: 'Name That Note', d: 'Hear a note and tap its name before the clock runs out.', c: '#14a37f', need: 'n7', best: () => S.best.name ? S.best.name + ' right' : '', act: 'ear'},
   simon: {e: '🧠', n: 'Riff Recall', d: 'Watch the riff light up, tap it back.', c: '#ef5d5d', need: 'chC', best: () => S.best.simon ? S.best.simon + ' notes' : '', act: 'ear'},
   tune: {e: '🎚️', n: 'Sharp or Flat', d: 'Is the second note flat, in tune or sharp?', c: '#e0a10b', need: 'b1', best: () => S.best.tune ? S.best.tune + ' right' : '', act: 'ear'},
   glide: {e: '🦅', n: 'Sky Glide', d: 'Your pitch is your altitude. Fly through the gates.', c: '#3d8fe6', need: 'n5', best: () => S.best.glide ? S.best.glide + ' gates' : '', act: 'play'},
@@ -1400,7 +1400,7 @@ function Mirror() {
 
 /* ================= ear duels: tap-only games, no singing ================= */
 const GEN = {
-  name(d) { const r = root(), L0 = learned().filter(o => o <= 12), pool = L0.length >= 3 ? (d < 4 ? L0.slice(0, Math.max(3, Math.ceil(L0.length / 2))) : L0) : [0, 4, 7];
+  name(d) { const r = root(), L0 = learned().filter(o => o <= 12), pool = L0.length >= 3 ? L0 : [0, 4, 7];   // every learned note from the first question
     const a = rnd(pool), ch = [a]; while (ch.length < Math.min(4, pool.length)) { const c = rnd(pool); if (!ch.includes(c)) ch.push(c); } ch.sort((x, y) => x - y);
     return {prompt: `Home is ${pc(r)}. Name the second note.`, seq: [[r, 0.55], [r + a, 0.85]], opts: ch.map(c => ({t: pc(r + c) + (c === 12 ? ' ↑' : ''), c: col(r + c, 56)})), ans: ch.indexOf(a), tell: 'It was ' + pc(r + a) + (a === 12 ? ', an octave up' : '')}; },
   dir(d) { const base = root() + Math.floor(R() * 8), gap = d < 3 ? 5 + Math.floor(R() * 3) : d < 6 ? 2 + Math.floor(R() * 3) : d < 9 ? 1 : d < 12 ? 0.5 : d < 15 ? 0.3 : d < 18 ? 0.2 : 0.12, up = R() < 0.5;
@@ -1425,14 +1425,15 @@ const DIR_MODES = {
   fast: {n: 'Speed Round', d: 'Higher or lower against a big countdown. 5 seconds at first, and it gets faster with every right answer, down to 1.5.', need: null, best: 'dirFast', gen: 'dir', t0: 5, k: 0.93, tMin: 1.5, xp: 1.5},
   semi: {n: 'Semitones', d: 'Which way, and how many semitones? 8 seconds at first, speeding up to 3.', need: 'b3', best: 'dirSemi', gen: 'semi', t0: 8, k: 0.95, tMin: 3, xp: 2},
   classic: {n: 'Classic', d: 'No clock. Good for warming up.', need: null, best: 'dir', gen: 'dir'}};
+const NAME_MODE = {n: 'Name That Note', best: 'name', gen: 'name', t0: 6, k: 0.93, tMin: 2, xp: 1.3};   // timed, faster with every right answer
 function dirMenu() {
   openSheet(`<h2 class="res-t" style="margin-bottom:12px">↕️ High or Low</h2>` + Object.keys(DIR_MODES).map(k => { const m = DIR_MODES[k], ok = !m.need || isDone(m.need);
     return `<button class="game" style="--gc:#3d8fe6;width:100%;margin-bottom:10px" data-a="dirGo" data-m="${k}" ${ok ? '' : 'disabled'}><span class="ge">${ok ? (m.t0 ? '⏱️' : '↕️') : '🔒'}</span><span><b>${m.n}</b><span class="tiny">${ok ? m.d : 'Unlocks after "' + titleOf(m.need) + '"'}</span></span>${ok && S.best[m.best] ? `<span class="best">Best<br>${S.best[m.best]}</span>` : ''}</button>`; }).join(''));
 }
 function startQuiz(kind, battle, mode) {
   closeSheet(); const lives = 3 + (battle ? Math.floor(eff('vit') / 3) : 0), need = battle ? (battle.zi >= 3 ? 7 : 6) : 0;
-  const M = !battle && kind === 'dir' ? DIR_MODES[mode || 'classic'] : null;
-  Q = {kind, battle, mode: M ? (mode || 'classic') : null, M, title: battle ? battle.q.name : M && M.t0 ? 'High or Low · ' + M.n : EARS[kind].n, d: battle ? battle.zi * 3 : 0, score: 0, miss: 0, streak: 0, lives, maxLives: lives, need, foe: need, busy: false, cur: null, timers: []};
+  const M = battle ? null : kind === 'dir' ? DIR_MODES[mode || 'classic'] : kind === 'name' ? NAME_MODE : null;
+  Q = {kind, battle, mode: kind === 'dir' && M ? (mode || 'classic') : null, M, title: battle ? battle.q.name : kind === 'dir' && M.t0 ? 'High or Low · ' + M.n : EARS[kind].n, d: battle ? battle.zi * 3 : 0, score: 0, miss: 0, streak: 0, lives, maxLives: lives, need, foe: need, busy: false, cur: null, timers: []};
   $('#quiz').classList.remove('hidden'); nextQ();
 }
 function playSeq2() {
